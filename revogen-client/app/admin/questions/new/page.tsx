@@ -132,15 +132,62 @@ export default function NewQuestionPage() {
 
         <br />
 
-        <input
-          placeholder="Category"
-          value={category}
-          onChange={(e) =>
-            setCategory(
-              e.target.value,
-            )
-          }
-        />
+        <select
+  value={category}
+  onChange={(e) =>
+    setCategory(
+      e.target.value,
+    )
+  }
+  style={{
+    width: '100%',
+    padding: '10px',
+  }}
+>
+  <option value="">
+    Select Module
+  </option>
+
+  <option value="Java">
+    Java
+  </option>
+
+  <option value="Python">
+    Python
+  </option>
+
+  <option value="JavaScript">
+    JavaScript
+  </option>
+
+  <option value="React">
+    React
+  </option>
+
+  <option value="DBMS">
+    DBMS
+  </option>
+
+  <option value="SQL">
+    SQL
+  </option>
+
+  <option value="DSA">
+    DSA
+  </option>
+
+  <option value="Operating Systems">
+    Operating Systems
+  </option>
+
+  <option value="Computer Networks">
+    Computer Networks
+  </option>
+
+  <option value="Aptitude">
+    Aptitude
+  </option>
+</select>
 
         <br />
         <br />

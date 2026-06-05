@@ -127,6 +127,70 @@ export default function AdminPage() {
         )}
 
         <div
+  style={{
+    border: '1px solid gray',
+    padding: '20px',
+    minWidth: '200px',
+  }}
+>
+  <h2>
+    Average Score
+  </h2>
+
+  <h1>
+    {stats?.averageScore}%
+  </h1>
+</div>
+
+<div
+  style={{
+    border: '1px solid gray',
+    padding: '20px',
+    minWidth: '200px',
+  }}
+>
+  <h2>
+    Completion Rate
+  </h2>
+
+  <h1>
+    {stats?.completionRate}%
+  </h1>
+</div>
+
+<div
+  style={{
+    border: '1px solid gray',
+    padding: '20px',
+    minWidth: '200px',
+  }}
+>
+  <h2>
+    Pending Invites
+  </h2>
+
+  <h1>
+    {stats?.pendingInvitations}
+  </h1>
+</div>
+
+<div
+  style={{
+    border: '1px solid gray',
+    padding: '20px',
+    minWidth: '200px',
+  }}
+>
+  <h2>
+    Completed Invites
+  </h2>
+
+  <h1>
+   {stats?.completedInvitations}
+  </h1>
+</div>
+
+        <div
           style={{
             display: 'flex',
             gap: '20px',

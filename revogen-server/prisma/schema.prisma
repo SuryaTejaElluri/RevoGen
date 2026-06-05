@@ -78,12 +78,15 @@ model ResumeAnalysis {
 model Test {
   id String @id @default(uuid())
 
-  title    String
-  category String
+  title String
+
   duration Int
 
+  modules TestModule[]
+
   questions Question[]
-  attempts  Attempt[]
+
+  attempts Attempt[]
 
   invitations TestInvitation[]
 
@@ -158,4 +161,16 @@ model TestInvitation {
   createdAt DateTime @default(now())
 
   @@unique([email, testId])
+}
+
+model TestModule {
+  id String @id @default(uuid())
+
+  module String
+
+  questionCount Int
+
+  testId String
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
 }

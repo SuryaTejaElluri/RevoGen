@@ -8,14 +8,30 @@ export class TestsService {
   ) {}
 
   async createTest(data: {
-    title: string;
-    category: string;
-    duration: number;
-  }) {
-    return this.prisma.test.create({
-      data,
-    });
-  }
+  title: string;
+  duration: number;
+
+  modules: {
+    module: string;
+    questionCount: number;
+  }[];
+}) {
+  return this.prisma.test.create({
+    data: {
+      title: data.title,
+
+      duration: data.duration,
+
+      modules: {
+        create: data.modules,
+      },
+    },
+
+    include: {
+      modules: true,
+    },
+  });
+}
 
   async addQuestion(
   testId: string,
@@ -331,10 +347,59 @@ async getDashboardStats() {
   const totalAttempts =
     await this.prisma.attempt.count();
 
+  const attempts =
+    await this.prisma.attempt.findMany();
+
+  const averageScore =
+    attempts.length > 0
+      ? attempts.reduce(
+          (sum, attempt) =>
+            sum + attempt.percentage,
+          0,
+        ) / attempts.length
+      : 0;
+
+  const pendingInvitations =
+    await this.prisma.testInvitation.count({
+      where: {
+        status: 'PENDING',
+      },
+    });
+
+  const completedInvitations =
+    await this.prisma.testInvitation.count({
+      where: {
+        status: 'COMPLETED',
+      },
+    });
+
+  const totalInvitations =
+    pendingInvitations +
+    completedInvitations;
+
+  const completionRate =
+    totalInvitations > 0
+      ? (
+          (completedInvitations /
+            totalInvitations) *
+          100
+        )
+      : 0;
+
   return {
     totalTests,
     totalCandidates,
     totalAttempts,
+
+    averageScore:
+      averageScore.toFixed(1),
+
+    pendingInvitations,
+
+    completedInvitations,
+
+    completionRate:
+      completionRate.toFixed(1),
   };
 }
 }
