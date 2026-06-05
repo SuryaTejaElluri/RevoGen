@@ -14,8 +14,11 @@ model User {
   password String?
   provider String  @default("credentials")
 
-  profile Profile?
-  resumes Resume[]
+  role String @default("USER")
+
+  profile  Profile?
+  resumes  Resume[]
+  attempts Attempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -47,6 +50,112 @@ model Resume {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  analysis ResumeAnalysis?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ResumeAnalysis {
+  id String @id @default(uuid())
+
+  skills    Json?
+  education Json?
+  projects  Json?
+
+  rawText String?
+
+  atsScore      Int?  @default(0)
+  missingSkills Json?
+
+  resumeId String @unique
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Test {
+  id String @id @default(uuid())
+
+  title    String
+  category String
+  duration Int
+
+  questions Question[]
+  attempts  Attempt[]
+
+  invitations TestInvitation[]
+
+  createdAt DateTime @default(now())
+}
+
+model Question {
+  id String @id @default(uuid())
+
+  question String
+
+  optionA String
+  optionB String
+  optionC String
+  optionD String
+
+  correctAnswer String
+
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Attempt {
+  id String @id @default(uuid())
+
+  score          Int
+  totalQuestions Int
+  percentage     Float
+
+  tabSwitches          Int @default(0)
+  fullscreenViolations Int @default(0)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  testId String
+  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model QuestionBank {
+  id String @id @default(uuid())
+
+  category String
+
+  question String
+
+  optionA String
+  optionB String
+  optionC String
+  optionD String
+
+  correctAnswer String
+
+  createdAt DateTime @default(now())
+}
+
+model TestInvitation {
+  id String @id @default(uuid())
+
+  email String
+
+  status String @default("PENDING")
+
+  testId String
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([email, testId])
 }

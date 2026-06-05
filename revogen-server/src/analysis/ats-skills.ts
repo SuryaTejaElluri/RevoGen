@@ -1,0 +1,18 @@
+export const ATS_SKILLS = [
+  'Java',
+  'Spring Boot',
+  'React',
+  'Node.js',
+  'Next.js',
+  'NestJS',
+  'TypeScript',
+  'JavaScript',
+  'PostgreSQL',
+  'MySQL',
+  'MongoDB',
+  'Docker',
+  'AWS',
+  'Redis',
+  'Git',
+  'GitHub',
+];
