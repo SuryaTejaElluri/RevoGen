@@ -2,11 +2,10 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  ForbiddenException,
 } from '@nestjs/common';
 
 @Injectable()
-export class AdminGuard
+export class SuperAdminGuard
   implements CanActivate
 {
   canActivate(
@@ -17,17 +16,9 @@ export class AdminGuard
         .switchToHttp()
         .getRequest();
 
-    if (
-      request.user.role !==
-        'ADMIN' &&
-      request.user.role !==
-        'SUPER_ADMIN'
-    ) {
-      throw new ForbiddenException(
-        'Admins only',
-      );
-    }
-
-    return true;
+    return (
+      request.user?.role ===
+      'SUPER_ADMIN'
+    );
   }
 }

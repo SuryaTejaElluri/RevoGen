@@ -58,6 +58,10 @@ getResults(
     id,
   );
 }
+@Get('practice')
+getPracticeTests() {
+  return this.testsService.getPracticeTests();
+}
 @Get('my-attempts')
 @UseGuards(AuthGuard('jwt'))
 getMyAttempts(
@@ -91,6 +95,19 @@ getAttemptStatus(
   );
 
 
+}
+
+@Get(':id/modules')
+@UseGuards(
+  AuthGuard('jwt'),
+  AdminGuard,
+)
+getModules(
+  @Param('id') id: string,
+) {
+  return this.testsService.getModules(
+    id,
+  );
 }
 
 @Get('dashboard/stats')

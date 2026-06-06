@@ -13,17 +13,51 @@ export default function TestQuestionsPage() {
   const [questions, setQuestions] =
     useState<any[]>([]);
 
+    const [modules, setModules] =
+  useState<any[]>([]);
+
   const [
     selectedQuestions,
     setSelectedQuestions,
   ] = useState<string[]>([]);
 
   useEffect(() => {
-    loadQuestions();
-  }, []);
+  loadModules();
+}, []);
+
+const loadModules = async () => {
+  try {
+    const token =
+      localStorage.getItem(
+        'access_token',
+      );
+
+    const response =
+      await fetch(
+        `http://localhost:3000/tests/${testId}/modules`,
+        {
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+          },
+        },
+      );
+
+    const data =
+      await response.json();
+
+    setModules(data);
+
+    loadQuestions(data);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const loadQuestions =
-    async () => {
+  async (
+    testModules: any[],
+  ) => {
       try {
         const token =
           localStorage.getItem(
@@ -44,6 +78,25 @@ export default function TestQuestionsPage() {
         const data =
           await response.json();
 
+          const allowedCategories =
+  testModules.map(
+    (m) => m.module,
+  );
+
+const filteredQuestions =
+  data.filter(
+    (question: any) =>
+      allowedCategories.includes(
+        question.category,
+      ),
+  );
+
+setQuestions(
+  filteredQuestions,
+);
+
+return;
+
         console.log(
           'API Response:',
           data,
@@ -52,7 +105,7 @@ export default function TestQuestionsPage() {
         if (
           Array.isArray(data)
         ) {
-          setQuestions(data);
+          
         } else {
           console.error(
             'Expected array but got:',

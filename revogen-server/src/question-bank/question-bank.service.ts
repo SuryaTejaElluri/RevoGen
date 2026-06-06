@@ -61,6 +61,22 @@ export class QuestionBankService {
     };
   }
 
+  async getQuestionStats() {
+  const result =
+    await this.prisma.questionBank.groupBy({
+      by: ['category'],
+
+      _count: {
+        category: true,
+      },
+    });
+
+  return result.map((item) => ({
+    category: item.category,
+    count: item._count.category,
+  }));
+}
+
   async getCategories() {
     const categories =
       await this.prisma.questionBank.findMany({
@@ -75,4 +91,20 @@ export class QuestionBankService {
       (item) => item.category,
     );
   }
+  async getStats() {
+  const questions =
+    await this.prisma.questionBank.groupBy({
+      by: ['category'],
+
+      _count: {
+        category: true,
+      },
+    });
+    
+
+  return (questions.map((item) => ({
+    category: item.category,
+    count: item._count.category,
+  })));
+}
 }

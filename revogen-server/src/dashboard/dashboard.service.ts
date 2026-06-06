@@ -64,20 +64,25 @@ export class DashboardService {
       );
 
     return {
-      atsScore:
-        resume?.analysis?.atsScore ??
-        0,
+  atsScore:
+    resume?.analysis?.atsScore ?? 0,
 
-      testsTaken,
+  resumeUploaded:
+    !!resume,
 
-      averageScore,
+  testsTaken,
 
-      totalTabSwitches,
+  averageScore,
 
-      totalFullscreenViolations,
+  assignedAssessments: 0,
 
-      recentAttempts:
-        attempts.slice(0, 5),
-    };
+  practiceExamsTaken:
+    attempts.filter(
+      (a) => a.test?.isPractice,
+    ).length,
+
+  completedAssessments:
+    attempts.length,
+};
   }
 }

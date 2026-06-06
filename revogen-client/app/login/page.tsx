@@ -46,11 +46,15 @@ export default function LoginPage() {
         return;
       }
       localStorage.setItem('access_token', data.access_token);
-      if (data.role === 'ADMIN') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      if (data.role === 'SUPER_ADMIN') {
+  router.push('/pro-admin');
+}
+else if (data.role === 'ADMIN') {
+  router.push('/admin');
+}
+else {
+  router.push('/dashboard');
+}
     } catch {
       setError('Server error. Please try again.');
     } finally {

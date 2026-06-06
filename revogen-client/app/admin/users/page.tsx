@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import AdminNavbar from '@/components/AdminNavbar';
-
+import Link from 'next/link';
 export default function UsersPage() {
   const [users, setUsers] =
     useState<any[]>([]);
@@ -51,33 +51,50 @@ export default function UsersPage() {
 
         <hr />
 
-        {users.map(
-          (user) => (
-            <div
-              key={user.id}
-              style={{
-                border:
-                  '1px solid #ccc',
-                padding: '15px',
-                marginTop: '10px',
-              }}
-            >
-              <h3>
-                {user.name}
-              </h3>
+        {users.map((user) => (
+  <Link
+    key={user.id}
+    href={`/admin/users/${user.id}`}
+    style={{
+      textDecoration: 'none',
+    }}
+  >
+    <div
+      style={{
+        border: '1px solid #334155',
+        background: '#1e293b',
+        borderRadius: '12px',
+        padding: '20px',
+        marginTop: '12px',
+        cursor: 'pointer',
+      }}
+    >
+      <h3
+        style={{
+          color: '#f8fafc',
+        }}
+      >
+        {user.name}
+      </h3>
 
-              <p>
-                {user.email}
-              </p>
+      <p
+        style={{
+          color: '#94a3b8',
+        }}
+      >
+        {user.email}
+      </p>
 
-              <p>
-                Role:
-                {' '}
-                {user.role}
-              </p>
-            </div>
-          ),
-        )}
+      <p
+        style={{
+          color: '#cbd5e1',
+        }}
+      >
+        Role: {user.role}
+      </p>
+    </div>
+  </Link>
+))}
       </div>
     </>
   );

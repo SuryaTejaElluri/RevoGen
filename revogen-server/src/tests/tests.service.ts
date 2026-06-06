@@ -15,20 +15,102 @@ export class TestsService {
     module: string;
     questionCount: number;
   }[];
+
+  autoGenerate?: boolean;
 }) {
-  return this.prisma.test.create({
-    data: {
-      title: data.title,
+  const test =
+    await this.prisma.test.create({
+      data: {
+        title: data.title,
 
-      duration: data.duration,
+        duration: data.duration,
 
-      modules: {
-        create: data.modules,
+        modules: {
+          create: data.modules,
+        },
       },
+
+      include: {
+        modules: true,
+      },
+    });
+
+  // AUTO MODE
+  if (data.autoGenerate !== false) {
+    for (const module of data.modules) {
+      const bankQuestions =
+        await this.prisma.questionBank.findMany({
+          where: {
+            category: module.module,
+          },
+        });
+
+      if (
+        bankQuestions.length <
+        module.questionCount
+      ) {
+        throw new Error(
+          `${module.module} only has ${bankQuestions.length} questions available`,
+        );
+      }
+
+      const shuffled =
+        [...bankQuestions].sort(
+          () => Math.random() - 0.5,
+        );
+
+      const selectedQuestions =
+        shuffled.slice(
+          0,
+          module.questionCount,
+        );
+
+      for (const question of selectedQuestions) {
+        await this.prisma.question.create({
+          data: {
+            question:
+              question.question,
+
+            optionA:
+              question.optionA,
+
+            optionB:
+              question.optionB,
+
+            optionC:
+              question.optionC,
+
+            optionD:
+              question.optionD,
+
+            correctAnswer:
+              question.correctAnswer,
+
+            testId: test.id,
+          },
+        });
+      }
+    }
+  }
+
+  return await this.prisma.test.findUnique({
+    where: {
+      id: test.id,
     },
 
     include: {
       modules: true,
+      questions: true,
+    },
+  });
+}
+
+async getModules(
+  testId: string,
+) {
+  return this.prisma.testModule.findMany({
+    where: {
+      testId,
     },
   });
 }
@@ -98,24 +180,37 @@ async submitTest(
   let score = 0;
 
   for (const question of test.questions) {
-    const userAnswer =
-      answers[question.id];
+  const userAnswer =
+    answers[question.id];
 
-    if (
-      userAnswer ===
-      question.correctAnswer
-    ) {
-      score++;
-    }
+  const selectedOption =
+    userAnswer === 'A'
+      ? question.optionA
+      : userAnswer === 'B'
+      ? question.optionB
+      : userAnswer === 'C'
+      ? question.optionC
+      : userAnswer === 'D'
+      ? question.optionD
+      : '';
+
+  if (
+    selectedOption ===
+    question.correctAnswer
+  ) {
+    score++;
   }
+}
 
   const totalQuestions =
     test.questions.length;
 
- const percentage =
-  totalQuestions > 0
-    ? (score / totalQuestions) * 100
-    : 0;
+ const percentage = Number(
+  (
+    (score / totalQuestions) *
+    100
+  ).toFixed(2),
+);
   const attempt =
   await this.prisma.attempt.create({
     data: {
@@ -401,5 +496,21 @@ async getDashboardStats() {
     completionRate:
       completionRate.toFixed(1),
   };
+}
+
+async getPracticeTests() {
+  return this.prisma.test.findMany({
+    where: {
+      isPractice: true,
+    },
+
+    include: {
+      questions: true,
+    },
+
+    orderBy: {
+      title: 'asc',
+    },
+  });
 }
 }

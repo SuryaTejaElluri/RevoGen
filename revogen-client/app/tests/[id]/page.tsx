@@ -1,416 +1,179 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
-export default function TestPage() {
+export default function TestInstructionsPage() {
   const params = useParams();
+  const router = useRouter();
+
   const id = params.id as string;
 
-  const [test, setTest] = useState<any>(null);
-  const [tabSwitches, setTabSwitches] =
-  useState(0);
-  const [answers, setAnswers] = useState<
-    Record<string, string>
-  >({});
-  const [
-  fullscreenViolations,
-  setFullscreenViolations,
-] = useState(0);
-  const [
-  alreadyAttempted,
-  setAlreadyAttempted,
-] = useState(false);
-  const [result, setResult] = useState<any>(null);
-
-  const [timeLeft, setTimeLeft] =
-    useState(0);
-
-  const [submitted, setSubmitted] =
-    useState(false);
-
-  // Load Test
-  const checkAttemptStatus =
-  async () => {
-    const token =
-      localStorage.getItem(
-        'access_token',
-      );
-
-    const response =
-      await fetch(
-        `http://localhost:3000/tests/${id}/attempt-status`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-          },
-        },
-      );
-
-    const data =
-      await response.json();
-
-    setAlreadyAttempted(
-      data.attempted,
-    );
-  };
-
-// Load Test
-useEffect(() => {
-  if (!id) return;
-
-  fetch(
-    `http://localhost:3000/tests/${id}`,
-  )
-    .then((res) => res.json())
-    .then((data) => {
-      setTest(data);
-
-      setTimeLeft(
-        data.duration * 60,
-      );
-    })
-    .catch(console.error);
-}, [id]);
-
-// Check Attempt Status
-useEffect(() => {
-  if (!id) return;
-
-  checkAttemptStatus();
-}, [id]);
-
-// Timer
-useEffect(() => {
-  if (timeLeft <= 0) return;
-
-  const timer = setInterval(
-    () => {
-      setTimeLeft(
-        (prev) => prev - 1,
-      );
-    },
-    1000,
-  );
-
-  return () =>
-    clearInterval(timer);
-}, [timeLeft]);
-
-  const submitTest = async () => {
-  if (submitted) return;
-
-  setSubmitted(true);
-
-  const token =
-  localStorage.getItem(
-    'access_token',
-  );
-
-const response = await fetch(
-  `http://localhost:3000/tests/${id}/submit`,
-  {
-    method: 'POST',
-
-    headers: {
-      'Content-Type':
-        'application/json',
-
-      Authorization:
-        `Bearer ${token}`,
-    },
-
-    body: JSON.stringify({
-      answers,
-
-      tabSwitches,
-
-      fullscreenViolations,
-    }),
-  },
-);
-
-
-  const data = await response.json();
-
-  setResult(data);
-
-  if (document.fullscreenElement) {
-    document.exitFullscreen();
-  }
-};
-
-  // Auto Submit
-  useEffect(() => {
-  if (
-    timeLeft === 0 &&
-    test &&
-    !submitted
-  ) {
-    submitTest();
-  }
-}, [timeLeft, test, submitted]);
-
-  const minutes = Math.floor(
-    timeLeft / 60,
-  );
+  const [test, setTest] =
+    useState<any>(null);
 
   useEffect(() => {
-  const handleVisibilityChange = () => {
-    if (
-      document.hidden &&
-      !submitted
-    ) {
-      setTabSwitches(
-        (prev) => prev + 1,
-      );
-    }
-  };
+    loadTest();
+  }, []);
 
-  document.addEventListener(
-    'visibilitychange',
-    handleVisibilityChange,
-  );
+  const loadTest =
+    async () => {
+      try {
+        const response =
+          await fetch(
+            `http://localhost:3000/tests/${id}`,
+          );
 
-  return () => {
-    document.removeEventListener(
-      'visibilitychange',
-      handleVisibilityChange,
-    );
-  };
-}, [submitted]);
+        const data =
+          await response.json();
 
-useEffect(() => {
-  if (!test || submitted) return;
-
-  document.documentElement
-    .requestFullscreen()
-    .catch(console.error);
-}, [test, submitted]);
-
-useEffect(() => {
-  const handleFullscreenChange =
-    () => {
-      if (
-        !document.fullscreenElement &&
-        !submitted
-      ) {
-        setFullscreenViolations(
-          (prev) => prev + 1,
-        );
+        setTest(data);
+      } catch (error) {
+        console.error(error);
       }
     };
 
-  document.addEventListener(
-    'fullscreenchange',
-    handleFullscreenChange,
-  );
-
-  return () => {
-    document.removeEventListener(
-      'fullscreenchange',
-      handleFullscreenChange,
-    );
-  };
-}, [submitted]);
-  const seconds = timeLeft % 60;
-
   if (!test) {
-    return <h1>Loading Test...</h1>;
-  }
-
-if (alreadyAttempted) {
-  return (
-    <div
-      style={{
-        padding: '30px',
-      }}
-    >
-      <h1>
-        Assessment Completed
-      </h1>
-
-      <p>
-        You have already completed this test.
-      </p>
-    </div>
-  );
-}
-
-  
-
-  return (
-    <div
-      style={{
-        padding: '30px',
-      }}
-    >
-      <h1>{test.title}</h1>
-
-      <h2>
-        Time Left:{' '}
-        {minutes}:
-        {seconds
-          .toString()
-          .padStart(2, '0')}
-      </h2>
-      <p>
-  Tab Switches:
-  {' '}
-  {tabSwitches}
-</p>
-<p>
-  Fullscreen Violations:
-  {' '}
-  {fullscreenViolations}
-</p>
-      <p>
-        Category: {test.category}
-      </p>
-
-      <p>
-        Duration: {test.duration} mins
-      </p>
-
-      <hr />
-
-      {test.questions.map(
-        (
-          question: any,
-          index: number,
-        ) => (
-          <div
-            key={question.id}
-            style={{
-              marginTop: '20px',
-              padding: '20px',
-              border:
-                '1px solid gray',
-            }}
-          >
-            <h3>
-              Q{index + 1}.{' '}
-              {question.question}
-            </h3>
-
-            <label>
-              <input
-                type="radio"
-                name={question.id}
-                value="A"
-                onChange={() =>
-                  setAnswers({
-                    ...answers,
-                    [question.id]:
-                      'A',
-                  })
-                }
-              />
-              A. {question.optionA}
-            </label>
-
-            <br />
-            <br />
-
-            <label>
-              <input
-                type="radio"
-                name={question.id}
-                value="B"
-                onChange={() =>
-                  setAnswers({
-                    ...answers,
-                    [question.id]:
-                      'B',
-                  })
-                }
-              />
-              B. {question.optionB}
-            </label>
-
-            <br />
-            <br />
-
-            <label>
-              <input
-                type="radio"
-                name={question.id}
-                value="C"
-                onChange={() =>
-                  setAnswers({
-                    ...answers,
-                    [question.id]:
-                      'C',
-                  })
-                }
-              />
-              C. {question.optionC}
-            </label>
-
-            <br />
-            <br />
-
-            <label>
-              <input
-                type="radio"
-                name={question.id}
-                value="D"
-                onChange={() =>
-                  setAnswers({
-                    ...answers,
-                    [question.id]:
-                      'D',
-                  })
-                }
-              />
-              D. {question.optionD}
-            </label>
-          </div>
-        ),
-      )}
-
-      <button
-        onClick={submitTest}
-        disabled={submitted}
+    return (
+      <div
         style={{
-          marginTop: '20px',
-          padding: '10px 20px',
-          cursor: 'pointer',
+          padding: '40px',
         }}
       >
-        {submitted
-          ? 'Submitted'
-          : 'Submit Test'}
-      </button>
+        Loading...
+      </div>
+    );
+  }
 
-      {result && (
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#f8fafc',
+        padding: '40px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          background: 'white',
+          padding: '40px',
+          borderRadius: '16px',
+          boxShadow:
+            '0 10px 25px rgba(0,0,0,0.08)',
+        }}
+      >
+        <h1>
+          {test.title}
+        </h1>
+
+        <p
+          style={{
+            color: '#64748b',
+            marginTop: '10px',
+          }}
+        >
+          Please read the instructions
+          carefully before starting.
+        </p>
+
+        <hr
+          style={{
+            margin: '25px 0',
+          }}
+        />
+
+        <h3>
+          Assessment Details
+        </h3>
+
+        <p>
+          Duration:
+          {' '}
+          {test.duration}
+          {' '}
+          Minutes
+        </p>
+
+        <p>
+          Questions:
+          {' '}
+          {
+            test.questions?.length
+          }
+        </p>
+
+        <br />
+
+        <h3>
+          Instructions
+        </h3>
+
+        <ul
+          style={{
+            lineHeight: '2',
+          }}
+        >
+          <li>
+            Fullscreen mode is
+            mandatory.
+          </li>
+
+          <li>
+            Do not switch tabs or
+            windows.
+          </li>
+
+          <li>
+            Copy/Paste is disabled.
+          </li>
+
+          <li>
+            Right click is disabled.
+          </li>
+
+          <li>
+            The assessment will
+            auto-submit when time
+            expires.
+          </li>
+
+          <li>
+            Multiple security
+            violations may
+            terminate the exam.
+          </li>
+        </ul>
+
         <div
           style={{
             marginTop: '30px',
-            padding: '20px',
-            border:
-              '2px solid green',
           }}
         >
-          <h2>
-            🎉 Test Completed
-          </h2>
-
-          <p>
-            Score:{' '}
-            {result.score}/
-            {
-              result.totalQuestions
+          <button
+            onClick={() =>
+              router.push(
+                `/tests/${id}/exam`,
+              )
             }
-          </p>
-
-          <p>
-            Percentage:{' '}
-            {result.percentage}%
-          </p>
+            style={{
+              padding:
+                '12px 24px',
+              background:
+                '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius:
+                '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+            }}
+          >
+            Start Assessment
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

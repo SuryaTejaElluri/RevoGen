@@ -58,6 +58,17 @@ export class QuestionBankController {
     );
   }
 
+  @Get('stats')
+@UseGuards(
+  AuthGuard('jwt'),
+  AdminGuard,
+)
+getStats() {
+  return this.questionBankService.getStats();
+}
+
+
+
   @Get(':id')
   @UseGuards(
     AuthGuard('jwt'),
@@ -99,4 +110,6 @@ export class QuestionBankController {
       id,
     );
   }
+
+  
 }
