@@ -15,20 +15,20 @@ const styles = `
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 14px 20px;
+    padding: 14px 24px;
     pointer-events: none;
   }
 
   .rg-nav-pill {
     pointer-events: all;
     width: 100%;
-    max-width: 1100px;
-    height: 52px;
+    max-width: 1400px;
+    height: 58px;
     background: #111113;
     border-radius: 999px;
     display: flex;
     align-items: center;
-    padding: 0 6px 0 6px;
+    padding: 0 8px 0 8px;
     gap: 0;
     box-shadow:
       0 2px 8px rgba(0,0,0,0.35),
@@ -39,8 +39,8 @@ const styles = `
 
   /* ── Logo icon ── */
   .rg-pill-logo {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: #000;
     border: 1.5px solid rgba(255,255,255,0.10);
@@ -50,7 +50,7 @@ const styles = `
     flex-shrink: 0;
     text-decoration: none;
     transition: border-color 0.15s;
-    margin-right: 4px;
+    margin-right: 6px;
   }
   .rg-pill-logo:hover { border-color: rgba(255,255,255,0.25); }
 
@@ -69,9 +69,9 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 14px;
+    padding: 7px 16px;
     border-radius: 999px;
-    font-size: 13.5px;
+    font-size: 15px;
     font-weight: 500;
     color: rgba(255,255,255,0.55);
     text-decoration: none;
@@ -104,12 +104,12 @@ const styles = `
   .rg-email-pill {
     display: flex;
     align-items: center;
-    height: 36px;
-    padding: 0 16px;
+    height: 38px;
+    padding: 0 18px;
     border-radius: 999px;
     background: #fff;
     color: #111;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     font-family: 'DM Sans', system-ui, sans-serif;
     letter-spacing: -0.01em;
@@ -119,6 +119,9 @@ const styles = `
     transition: background 0.15s, color 0.15s;
     text-decoration: none;
     gap: 7px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .rg-email-pill:hover {
@@ -128,12 +131,12 @@ const styles = `
   .rg-signout-pill {
     display: flex;
     align-items: center;
-    height: 36px;
-    padding: 0 15px;
+    height: 38px;
+    padding: 0 17px;
     border-radius: 999px;
     background: transparent;
     color: rgba(255,255,255,0.45);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     font-family: 'DM Sans', system-ui, sans-serif;
     border: 1.5px solid rgba(255,255,255,0.10);
@@ -155,9 +158,9 @@ const styles = `
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 4px;
-    width: 36px;
-    height: 36px;
+    gap: 4.5px;
+    width: 38px;
+    height: 38px;
     cursor: pointer;
     border-radius: 999px;
     border: 1.5px solid rgba(255,255,255,0.10);
@@ -170,24 +173,24 @@ const styles = `
 
   .rg-burger span {
     display: block;
-    width: 14px;
+    width: 15px;
     height: 1.5px;
     background: rgba(255,255,255,0.6);
     border-radius: 2px;
     transition: transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.16s;
     transform-origin: center;
   }
-  .rg-burger.open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+  .rg-burger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
   .rg-burger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-  .rg-burger.open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+  .rg-burger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-  /* ── Mobile drawer (drops below pill) ── */
+  /* ── Mobile drawer ── */
   .rg-drawer {
     display: none;
     position: fixed;
-    top: 80px;
-    left: 20px;
-    right: 20px;
+    top: 86px;
+    left: 24px;
+    right: 24px;
     z-index: 999;
     background: #111113;
     border-radius: 20px;
@@ -209,8 +212,8 @@ const styles = `
   }
 
   .rg-drawer .rg-pill-link {
-    font-size: 14px;
-    padding: 10px 16px;
+    font-size: 15px;
+    padding: 11px 18px;
     border-radius: 12px;
     width: 100%;
   }
@@ -225,32 +228,33 @@ const styles = `
     border-radius: 12px;
     width: 100%;
     justify-content: center;
-    padding: 10px;
+    padding: 11px;
     height: auto;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
 
-  @media (max-width: 768px) {
-    .rg-pill-links       { display: none; }
-    .rg-email-pill       { display: none; }
+  @media (max-width: 900px) {
+    .rg-pill-links        { display: none; }
+    .rg-email-pill        { display: none; }
     .rg-signout-pill-desk { display: none; }
-    .rg-burger           { display: flex; }
+    .rg-burger            { display: flex; }
   }
 
   @media (max-width: 480px) {
     .rg-nav-outer { padding: 12px 14px; }
+    .rg-drawer    { left: 14px; right: 14px; top: 82px; }
   }
 `;
 
-// ── Tiny SVG icons ────────────────────────────────────────────────────────────
+// ── Icons ─────────────────────────────────────────────────────────────────────
 const LogoIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="white" opacity="0.9"/>
   </svg>
 );
 
 const LogoutIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
     <polyline points="16 17 21 12 16 7"/>
     <line x1="21" y1="12" x2="9" y2="12"/>
@@ -260,12 +264,12 @@ const LogoutIcon = () => (
 interface NavItem { href: string; label: string; }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: '/',               label: 'Home'     },
-  { href: '/dashboard',      label: 'Dashboard'},
+  { href: '/',               label: 'Home'          },
+  { href: '/dashboard',      label: 'Dashboard'     },
   { href: '/assigned-tests', label: 'Assigned Test' },
-  { href: '/practice',       label: 'Practice' },
-  { href: '/my-results',     label: 'Results'  },
-  { href: '/resumes',        label: 'Resumes'  },
+  { href: '/practice',       label: 'Practice'      },
+  { href: '/my-results',     label: 'Results'       },
+  { href: '/resumes',        label: 'Resumes'       },
 ];
 
 export default function Navbar() {
@@ -285,7 +289,6 @@ export default function Navbar() {
 
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
-  // Optionally read email from localStorage/token
   useEffect(() => {
     try {
       const token = localStorage.getItem('access_token');
@@ -345,6 +348,7 @@ export default function Navbar() {
               <span /><span /><span />
             </button>
           </div>
+
         </div>
       </div>
 

@@ -136,16 +136,11 @@ submitTest(
   @Request() req,
 ) {
   return this.testsService.submitTest(
-    id,
-
-    req.user.userId,
-
-    body.answers,
-
-    body.tabSwitches,
-
-    body.fullscreenViolations,
-  );
+  id,
+  req.user.userId,
+  body.answers,
+  body,
+);
 }
 
 

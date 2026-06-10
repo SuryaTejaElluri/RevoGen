@@ -12,6 +12,8 @@ const TEST_TEMPLATES = {
   'AI Engineer': { Python: 15, DSA: 10, SQL: 5, Aptitude: 5 },
 };
 
+
+
 const MODULE_ICONS: Record<string, string> = {
   Java: '☕',
   Python: '🐍',
@@ -27,6 +29,11 @@ const MODULE_ICONS: Record<string, string> = {
 
 export default function CreateTestPage() {
   const router = useRouter();
+
+  const [
+  securityLevel,
+  setSecurityLevel,
+] = useState('BASIC');
 
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState(30);
@@ -108,7 +115,7 @@ export default function CreateTestPage() {
       const response = await fetch('http://localhost:3000/tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title, duration, modules: selectedModules, autoGenerate }),
+        body: JSON.stringify({ title, duration, modules: selectedModules, securityLevel,autoGenerate }),
       });
       const data = await response.json();
       if (!response.ok) { alert(data.message || 'Failed to create test'); return; }
@@ -566,6 +573,40 @@ export default function CreateTestPage() {
             </div>
           </div>
 
+          <div
+  style={{
+    marginTop: '20px',
+  }}
+>
+  <label>
+    Security Level
+  </label>
+
+  <br />
+
+  <select
+    value={securityLevel}
+    onChange={(e) =>
+      setSecurityLevel(
+        e.target.value,
+      )
+    }
+    style={{
+      padding: '10px',
+      width: '250px',
+      marginTop: '10px',
+    }}
+  >
+    <option value="BASIC">
+      Basic Assessment
+    </option>
+
+    <option value="PRO">
+      Pro Assessment
+    </option>
+  </select>
+</div>
+
           {/* Submit */}
           <button
             className="submit-btn"
@@ -577,7 +618,10 @@ export default function CreateTestPage() {
                 <span className="spinner" />
                 Creating Test…
               </>
+              
             ) : (
+
+              
               <>
                 <span>✦</span>
                 Create Test

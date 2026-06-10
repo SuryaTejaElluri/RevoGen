@@ -1,24 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
-import AdminNavbar from '@/components/AdminNavbar';
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 
-export default function TestDetailsPage() {
+export default function ResultsRouterPage() {
   const params = useParams();
+  const router = useRouter();
 
   const id = params.id as string;
-
-  const [test, setTest] =
-    useState<any>(null);
 
   useEffect(() => {
     loadTest();
   }, []);
 
-  const loadTest =
-    async () => {
+  const loadTest = async () => {
+    try {
       const token =
         localStorage.getItem(
           'access_token',
@@ -35,112 +31,41 @@ export default function TestDetailsPage() {
           },
         );
 
-      const data =
+      const test =
         await response.json();
 
-      setTest(data);
-    };
+      if (
+        test.securityLevel ===
+        'PRO'
+      ) {
+        router.replace(
+          `/admin/tests/${id}/results/pro`,
+        );
+      } else {
+        router.replace(
+          `/admin/tests/${id}/results/basic`,
+        );
+      }
+    } catch (error) {
+      console.error(error);
 
-  if (!test) {
-    return (
-      <>
-        <AdminNavbar />
-        <h1>
-          Loading Test...
-        </h1>
-      </>
-    );
-  }
+      router.replace(
+        `/admin/tests/${id}`,
+      );
+    }
+  };
 
   return (
-  <>
-    <AdminNavbar />
-
     <div
       style={{
-        padding: '30px',
+        display: 'flex',
+        justifyContent:
+          'center',
+        alignItems: 'center',
+        height: '100vh',
       }}
     >
-      <h1>
-        {test.title}
-      </h1>
-
-      <p>
-        Category: {test.category}
-      </p>
-
-      <p>
-        Duration: {test.duration} mins
-      </p>
-
-      <p>
-        Total Questions:
-        {' '}
-        {test.questions?.length}
-      </p>
-
-      <Link
-        href={`/admin/tests/${id}/invite`}
-      >
-        <button
-          style={{
-            marginTop: '10px',
-            marginBottom: '20px',
-          }}
-        >
-          Assign Test
-        </button>
-      </Link>
-
-      <hr />
-
-      <h2>
-        Questions
-      </h2>
-
-      {test.questions?.map(
-        (
-          question: any,
-          index: number,
-        ) => (
-          <div
-            key={question.id}
-            style={{
-              border:
-                '1px solid #ccc',
-              padding: '15px',
-              marginTop: '10px',
-            }}
-          >
-            <h3>
-              Q{index + 1}.{' '}
-              {question.question}
-            </h3>
-
-            <p>
-              A. {question.optionA}
-            </p>
-
-            <p>
-              B. {question.optionB}
-            </p>
-
-            <p>
-              C. {question.optionC}
-            </p>
-
-            <p>
-              D. {question.optionD}
-            </p>
-
-            <p>
-              Correct:{' '}
-              {question.correctAnswer}
-            </p>
-          </div>
-        ),
-      )}
+      Loading Results...
     </div>
-  </>
-);
+  );
 }

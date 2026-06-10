@@ -10,6 +10,8 @@ export class TestsService {
   async createTest(data: {
   title: string;
   duration: number;
+  
+   securityLevel?: 'BASIC' | 'PRO';
 
   modules: {
     module: string;
@@ -24,6 +26,10 @@ export class TestsService {
         title: data.title,
 
         duration: data.duration,
+
+         securityLevel:
+        data.securityLevel ??
+        'BASIC',
 
         modules: {
           create: data.modules,
@@ -156,12 +162,13 @@ async findById(id: string) {
     ),
   };
 }
+
 async submitTest(
+  
   testId: string,
   userId: string,
   answers: any,
-  tabSwitches: number,
-  fullscreenViolations: number,
+  proctoringData: any,
 ) {
   const test =
     await this.prisma.test.findUnique({
@@ -180,81 +187,161 @@ async submitTest(
   let score = 0;
 
   for (const question of test.questions) {
-  const userAnswer =
-    answers[question.id];
+    const userAnswer =
+      answers[question.id];
 
-  const selectedOption =
-    userAnswer === 'A'
-      ? question.optionA
-      : userAnswer === 'B'
-      ? question.optionB
-      : userAnswer === 'C'
-      ? question.optionC
-      : userAnswer === 'D'
-      ? question.optionD
-      : '';
+    const selectedOption =
+      userAnswer === 'A'
+        ? question.optionA
+        : userAnswer === 'B'
+        ? question.optionB
+        : userAnswer === 'C'
+        ? question.optionC
+        : userAnswer === 'D'
+        ? question.optionD
+        : '';
 
-  if (
-    selectedOption ===
-    question.correctAnswer
-  ) {
-    score++;
+    if (
+      selectedOption ===
+      question.correctAnswer
+    ) {
+      score++;
+    }
+    console.log(proctoringData);
+    
   }
-}
 
   const totalQuestions =
     test.questions.length;
 
- const percentage = Number(
-  (
-    (score / totalQuestions) *
-    100
-  ).toFixed(2),
-);
+  const percentage = Number(
+    (
+      (score / totalQuestions) *
+      100
+    ).toFixed(2),
+  );
+console.log('PROCTORING DATA');
+console.log(JSON.stringify(proctoringData, null, 2));
   const attempt =
-  await this.prisma.attempt.create({
+    await this.prisma.attempt.create({
+      data: {
+        score,
+        totalQuestions,
+        percentage,
+
+        tabSwitches:
+  proctoringData.tabSwitches ?? 0,
+
+fullscreenViolations:
+  proctoringData.fullscreenViolations ?? 0,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
+
+        test: {
+          connect: {
+            id: testId,
+          },
+        },
+      },
+    });
+    console.log('PROCTORING DATA RECEIVED');
+console.log(JSON.stringify(proctoringData, null, 2));
+
+console.log(
+  'copyAttempts =',
+  proctoringData.summary?.copyAttempts,
+);
+
+console.log(
+  'rightClickAttempts =',
+  proctoringData.summary?.rightClickAttempts,
+);
+
+  await this.prisma.proctoringReport.create({
+    
     data: {
-      score,
-      totalQuestions,
-      percentage,
+      
+      attemptId: attempt.id,
+
+      cameraEnabled:
+        proctoringData.cameraEnabled ??
+        false,
+
+      microphoneEnabled:
+        proctoringData.microphoneEnabled ??
+        false,
 
       tabSwitches:
-        tabSwitches ?? 0,
+        proctoringData.summary
+          ?.tabSwitches ?? 0,
 
       fullscreenViolations:
-        fullscreenViolations ?? 0,
+        proctoringData.summary
+          ?.fullscreenViolations ?? 0,
 
-      user: {
-        connect: {
-          id: userId,
-        },
-      },
+       copyAttempts:
+  proctoringData.summary?.copyAttempts ?? 0,
 
-      test: {
-        connect: {
-          id: testId,
-        },
-      },
+rightClickAttempts:
+  proctoringData.summary?.rightClickAttempts ?? 0,
+
+      idleEvents:
+        proctoringData.summary
+          ?.idleEvents ?? 0,
+
+      resizeEvents:
+        proctoringData.summary
+          ?.resizeEvents ?? 0,
+
+      faceMissingEvents:
+        proctoringData.summary
+          ?.faceMissingEvents ?? 0,
+
+      multipleFaceEvents:
+        proctoringData.summary
+          ?.multipleFaceEvents ?? 0,
+
+      noiseWarnings:
+        proctoringData.summary
+          ?.noiseWarnings ?? 0,
+
+      riskScore:
+        proctoringData.riskScore ?? 0,
+
+      securityScore:
+        Math.max(
+          0,
+          100 -
+            (proctoringData.riskScore ??
+              0),
+        ),
+
+      suspicionLevel:
+        proctoringData.summary
+          ?.riskLevel ?? 'LOW',
     },
   });
 
-    await this.prisma.testInvitation.updateMany({
-  where: {
-    email: (
-      await this.prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
-      })
-    )?.email,
+  await this.prisma.testInvitation.updateMany({
+    where: {
+      email: (
+        await this.prisma.user.findUnique({
+          where: {
+            id: userId,
+          },
+        })
+      )?.email,
 
-    testId,
-  },
+      testId,
+    },
 
-  data: {
-    status: 'COMPLETED',
-  },
-});
+    data: {
+      status: 'COMPLETED',
+    },
+  });
 
   return {
     score,
@@ -390,6 +477,8 @@ async getResults(
 
     include: {
       user: true,
+      test: true, 
+      proctoringReport: true,
     },
 
     orderBy: {
@@ -513,4 +602,5 @@ async getPracticeTests() {
     },
   });
 }
+
 }

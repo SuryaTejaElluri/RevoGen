@@ -1,0 +1,14 @@
+export enum CodingCategory {
+  ARRAYS = 'ARRAYS',
+  STRINGS = 'STRINGS',
+  LINKED_LIST = 'LINKED_LIST',
+  STACK = 'STACK',
+  QUEUE = 'QUEUE',
+  TREE = 'TREE',
+  GRAPH = 'GRAPH',
+  DP = 'DP',
+  GREEDY = 'GREEDY',
+  BINARY_SEARCH = 'BINARY_SEARCH',
+  RECURSION = 'RECURSION',
+  MATH = 'MATH',
+}

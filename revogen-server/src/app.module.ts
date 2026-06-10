@@ -8,12 +8,14 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { TestsModule } from './tests/tests.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { QuestionBankModule } from './question-bank/question-bank.module';
-
+import { CodingTestsModule } from './coding-tests/coding-tests.module';
+import { CodingQuestionsModule } from './coding-question-bank/coding-questions.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      
     }),
 
     AuthModule,
@@ -23,6 +25,8 @@ import { QuestionBankModule } from './question-bank/question-bank.module';
     TestsModule,
     DashboardModule,
     QuestionBankModule,
+    CodingTestsModule,
+     CodingQuestionsModule,
   ],
 })
 export class AppModule {}

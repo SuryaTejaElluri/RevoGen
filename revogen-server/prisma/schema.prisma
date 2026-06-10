@@ -7,6 +7,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SecurityLevel {
+  BASIC
+  PRO
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum CodingCategory {
+  ARRAYS
+  STRINGS
+  LINKED_LIST
+  STACK
+  QUEUE
+  TREE
+  GRAPH
+  DP
+  GREEDY
+  BINARY_SEARCH
+  RECURSION
+  MATH
+}
+
 model User {
   id       String  @id @default(uuid())
   name     String
@@ -82,6 +108,8 @@ model Test {
 
   duration Int
 
+  securityLevel SecurityLevel @default(BASIC)
+
   modules TestModule[]
 
   questions Question[]
@@ -89,6 +117,7 @@ model Test {
   attempts Attempt[]
 
   invitations TestInvitation[]
+
   isPractice Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -115,18 +144,29 @@ model Question {
 model Attempt {
   id String @id @default(uuid())
 
-  score          Int
-  totalQuestions Int
-  percentage     Float
+  score Int
 
-  tabSwitches          Int @default(0)
+  totalQuestions Int
+
+  percentage Float
+
+  tabSwitches Int @default(0)
+
   fullscreenViolations Int @default(0)
 
+  copyAttempts Int @default(0)
+
+  rightClickAttempts Int @default(0)
+
+  proctoringReport ProctoringReport?
+
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   testId String
-  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -174,4 +214,143 @@ model TestModule {
   testId String
 
   test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+}
+
+model ProctoringReport {
+  id String @id @default(uuid())
+
+  attemptId String @unique
+
+  attempt Attempt @relation(fields: [attemptId], references: [id])
+
+  // Permissions
+
+  cameraEnabled Boolean @default(false)
+
+  microphoneEnabled Boolean @default(false)
+
+  // Existing Violations
+
+  tabSwitches Int @default(0)
+
+  fullscreenViolations Int @default(0)
+
+  idleEvents Int @default(0)
+
+  resizeEvents Int @default(0)
+
+  copyAttempts Int @default(0)
+
+  rightClickAttempts Int @default(0)
+
+  // New PRO Features
+
+  faceMissingEvents Int @default(0)
+
+  multipleFaceEvents Int @default(0)
+
+  noiseWarnings Int @default(0)
+
+  focusLossEvents Int @default(0)
+
+  possibleMultiMonitor Boolean @default(false)
+
+  // Scoring
+
+  riskScore Int @default(0)
+
+  securityScore Int @default(100)
+
+  suspicionLevel String @default("LOW")
+
+  createdAt DateTime @default(now())
+}
+
+model CodingQuestion {
+  id String @id @default(uuid())
+
+  title String
+  slug  String @unique
+
+  description String @db.Text
+  constraints String @db.Text
+
+  inputFormat  String @db.Text
+  outputFormat String @db.Text
+
+  difficulty Difficulty
+  category   CodingCategory
+
+  starterCode  Json?
+  solutionCode String? @db.Text
+
+  timeLimit   Int @default(1000)
+  memoryLimit Int @default(256)
+
+  testCases CodingTestCase[]
+
+  codingTests CodingTestQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("coding_questions")
+}
+
+model CodingTestCase {
+  id String @id @default(uuid())
+
+  questionId String
+
+  question CodingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  input          String @db.Text
+  expectedOutput String @db.Text
+
+  isHidden Boolean @default(false)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("coding_test_cases")
+}
+
+model CodingTest {
+  id String @id @default(uuid())
+
+  title String
+
+  description String?
+
+  category String?
+  isActive Boolean @default(true)
+
+  duration Int
+
+  questions CodingTestQuestion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("coding_tests")
+}
+
+model CodingTestQuestion {
+  id String @id @default(uuid())
+
+  codingTestId String
+
+  codingQuestionId String
+
+  marks Int @default(100)
+
+  orderNo Int @default(1)
+
+  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+
+  codingQuestion CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  @@unique([codingTestId, codingQuestionId])
+  @@map("coding_test_questions")
 }
