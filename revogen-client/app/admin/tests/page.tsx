@@ -24,35 +24,77 @@ export default function TestsPage() {
   }, []);
 
   const loadAll = async () => {
-    setLoading(true);
-    try {
-      const [mcqRes, codingRes] = await Promise.allSettled([
-        fetch('http://localhost:3000/tests'),
-        fetch('http://localhost:3000/coding-tests'),
+  setLoading(true);
+
+  try {
+    const token = localStorage.getItem(
+      'access_token',
+    );
+
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
+
+    const [mcqRes, codingRes] =
+      await Promise.allSettled([
+        fetch(
+          'http://localhost:3000/tests',
+          { headers },
+        ),
+        fetch(
+          'http://localhost:3000/coding-tests',
+          { headers },
+        ),
       ]);
 
-      const mcqData =
-        mcqRes.status === 'fulfilled' && mcqRes.value.ok
-          ? (await mcqRes.value.json()).map((t: any) => ({ ...t, assessmentType: 'MCQ' }))
-          : [];
+    const mcqData =
+      mcqRes.status === 'fulfilled' &&
+      mcqRes.value.ok
+        ? (await mcqRes.value.json()).map(
+            (t: any) => ({
+              ...t,
+              assessmentType: 'MCQ',
+            }),
+          )
+        : [];
 
-      const codingData =
-        codingRes.status === 'fulfilled' && codingRes.value.ok
-          ? (await codingRes.value.json()).map((t: any) => ({ ...t, assessmentType: 'CODING' }))
-          : [];
+    const codingData =
+      codingRes.status === 'fulfilled' &&
+      codingRes.value.ok
+        ? (await codingRes.value.json()).map(
+            (t: any) => ({
+              ...t,
+              assessmentType: 'CODING',
+            }),
+          )
+        : [];
 
-      setAllAssessments([...mcqData, ...codingData]);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setAllAssessments([
+      ...mcqData,
+      ...codingData,
+    ]);
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleDeleteCoding = async (id: string) => {
     if (!confirm('Delete this coding assessment?')) return;
     try {
-      await fetch(`http://localhost:3000/coding-tests/${id}`, { method: 'DELETE' });
+     const token =
+  localStorage.getItem('access_token');
+
+await fetch(
+  `http://localhost:3000/coding-tests/${id}`,
+  {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  },
+);
       loadAll();
     } catch (error) {
       console.error(error);
@@ -720,6 +762,20 @@ export default function TestsPage() {
                           <Link href={`/admin/coding-tests/${test.id}`} className="action-btn purple-btn">
                             👁 View Assessment
                           </Link>
+
+                          <Link
+  href={`/admin/coding-tests/${test.id}/results`}
+  className="action-btn success-btn"
+>
+  📊 Results
+</Link>
+
+ <Link
+      href={`/admin/coding-tests/${test.id}/assign`}
+      className="action-btn success-btn"
+    >
+      ✉️ Assign
+    </Link>
                           <button
                             className="action-btn danger-btn"
                             onClick={() => handleDeleteCoding(test.id)}

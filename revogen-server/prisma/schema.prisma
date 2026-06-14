@@ -42,9 +42,12 @@ model User {
 
   role String @default("USER")
 
-  profile  Profile?
-  resumes  Resume[]
-  attempts Attempt[]
+  profile     Profile?
+  resumes     Resume[]
+  attempts    Attempt[]
+  submissions CodingSubmission[]
+
+  codingTests CodingTest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -286,7 +289,7 @@ model CodingQuestion {
 
   timeLimit   Int @default(1000)
   memoryLimit Int @default(256)
-
+  submissions CodingSubmission[]
   testCases CodingTestCase[]
 
   codingTests CodingTestQuestion[]
@@ -328,9 +331,18 @@ model CodingTest {
 
   duration Int
 
+  createdById String
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  attempts AssessmentAttempt[]
+
   questions CodingTestQuestion[]
 
+  assignments CodingAssignment[]
+
   createdAt DateTime @default(now())
+
   updatedAt DateTime @updatedAt
 
   @@map("coding_tests")
@@ -353,4 +365,141 @@ model CodingTestQuestion {
 
   @@unique([codingTestId, codingQuestionId])
   @@map("coding_test_questions")
+}
+
+model CodingSubmission {
+  id String @id @default(uuid())
+
+  codingTestId String
+  codingQuestionId String
+
+  codingQuestion CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+
+  userId String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  candidateEmail String?
+
+  language String
+
+  attemptId String?
+
+  sourceCode String @db.Text
+
+  stdout String? @db.Text
+
+  passedCases Int @default(0)
+
+  totalCases Int @default(0)
+
+  score Int @default(0)
+
+  status String @default("PENDING")
+
+  submittedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@map("coding_submissions")
+}
+
+
+model SecurityEvent {
+  id String @id @default(uuid())
+
+  codingTestId String
+
+  attemptId String?
+
+  eventType String
+
+  details String? @db.Text
+
+  createdAt DateTime @default(now())
+
+  @@map("security_events")
+}
+
+model AssessmentAttempt {
+  id String @id @default(uuid())
+
+  codingTestId String
+
+  codingTest CodingTest @relation(fields: [codingTestId], references: [id])
+
+  candidateName String?
+  candidateEmail String?
+
+  totalQuestions Int
+
+  completedQuestions Int
+
+  totalScore Int
+
+  percentage Int
+
+  securityViolations Int @default(0)
+
+  riskScore Int @default(0)
+
+  riskLevel String @default("LOW")
+
+  status String
+
+  startedAt DateTime @default(now())
+
+  submittedAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@map("assessment_attempts")
+}
+
+model AssessmentQuestionResult {
+  id String @id @default(uuid())
+
+  attemptId String
+
+  codingQuestionId String
+
+  questionTitle String
+
+  score Int
+
+  maxScore Int
+
+  passedCases Int
+
+  totalCases Int
+
+  status String
+
+  createdAt DateTime @default(now())
+
+  @@map("assessment_question_results")
+}
+
+model CodingAssignment {
+  id String @id @default(uuid())
+
+  codingTestId String
+
+  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+
+  candidateName String
+
+  candidateEmail String
+
+  accessToken String @unique
+
+  status String @default("PENDING")
+
+  attemptId String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([candidateEmail, codingTestId])
+
+  @@map("coding_assignments")
 }

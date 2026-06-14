@@ -83,41 +83,100 @@ export default function CreateCodingAssessmentPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const handleSubmit = async (
+  e: React.FormEvent,
+) => {
+  e.preventDefault();
 
-    if (!title.trim()) return setError('Title is required.');
-    if (!duration) return setError('Duration is required.');
-    if (selectedIds.length === 0) return setError('Please select at least one question.');
+  setError('');
 
-    setSubmitting(true);
+  if (!title.trim()) {
+    return setError(
+      'Title is required.',
+    );
+  }
 
-    try {
-      const payload = {
-        title,
-        description,
-        category,
-        duration: Number(duration),
-        questionIds: selectedIds
-      };
+  if (!duration) {
+    return setError(
+      'Duration is required.',
+    );
+  }
 
-      const response = await fetch('http://localhost:3000/coding-tests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+  if (
+    selectedIds.length === 0
+  ) {
+    return setError(
+      'Please select at least one question.',
+    );
+  }
 
-      if (!response.ok) {
-        throw new Error('Failed to create assessment.');
-      }
+  setSubmitting(true);
 
-      router.push('/admin/tests');
-    } catch (err: any) {
-      setError(err.message || 'An error occurred while creating the assessment.');
-      setSubmitting(false);
+  try {
+    const token =
+      localStorage.getItem(
+        'access_token',
+      );
+
+    const payload = {
+      title,
+      description,
+      category,
+      duration:
+        Number(duration),
+      questionIds:
+        selectedIds,
+    };
+
+    const response =
+      await fetch(
+        'http://localhost:3000/coding-tests',
+        {
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json',
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: JSON.stringify(
+            payload,
+          ),
+        },
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      console.log(
+        'Create Error:',
+        data,
+      );
+
+      throw new Error(
+        data.message ||
+          'Failed to create assessment.',
+      );
     }
-  };
+
+    router.push(
+      '/admin/coding-tests',
+    );
+  } catch (err: any) {
+    console.error(err);
+
+    setError(
+      err.message ||
+        'An error occurred while creating the assessment.',
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <>

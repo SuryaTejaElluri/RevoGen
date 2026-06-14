@@ -10,6 +10,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { QuestionBankModule } from './question-bank/question-bank.module';
 import { CodingTestsModule } from './coding-tests/coding-tests.module';
 import { CodingQuestionsModule } from './coding-question-bank/coding-questions.module';
+import { CodingSubmissionsModule } from './coding-submissions/coding-submissions.module';
+import { Judge0Module } from './judge0/judge0.module';
+import { CodingAssignmentsModule } from './coding-assignments/coding-assignments.module';
 
 @Module({
   imports: [
@@ -27,6 +30,9 @@ import { CodingQuestionsModule } from './coding-question-bank/coding-questions.m
     QuestionBankModule,
     CodingTestsModule,
      CodingQuestionsModule,
+     CodingSubmissionsModule,
+     Judge0Module,
+     CodingAssignmentsModule,
   ],
 })
 export class AppModule {}

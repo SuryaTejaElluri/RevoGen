@@ -3,25 +3,48 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CodingTest } from '@/types/coding-assessments';
-import { fetchCodingTests, deleteCodingTest } from '@/lib/api/coding-assessments';
+
 
 export default function CodingTestsListPage() {
   const router = useRouter();
-  const [tests, setTests] = useState<CodingTest[]>([]);
+  const [tests, setTests] =
+  useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [testToDelete, setTestToDelete] = useState<CodingTest | null>(null);
+  const [testToDelete, setTestToDelete] =
+  useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadTests = async () => {
     setIsLoading(true);
     try {
-      const data = await fetchCodingTests();
-      setTests(data);
+      const token =
+  localStorage.getItem(
+    'access_token',
+  );
+
+const response =
+  await fetch(
+    'http://localhost:3000/coding-tests',
+    {
+      headers: {
+        Authorization:
+          `Bearer ${token}`,
+      },
+    },
+  );
+
+const data =
+  await response.json();
+
+setTests(
+  Array.isArray(data)
+    ? data
+    : [],
+);
     } catch (error) {
       console.error(error);
       alert('Failed to load coding tests');
@@ -44,7 +67,22 @@ export default function CodingTestsListPage() {
     if (!testToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteCodingTest(testToDelete.id);
+      const token =
+  localStorage.getItem(
+    'access_token',
+  );
+
+await fetch(
+  `http://localhost:3000/coding-tests/${testToDelete.id}`,
+  {
+    method: 'DELETE',
+
+    headers: {
+      Authorization:
+        `Bearer ${token}`,
+    },
+  },
+);
       await loadTests();
       setIsDeleteModalOpen(false);
       setTestToDelete(null);

@@ -140,6 +140,7 @@ interface Test {
   title: string;
   category: string;
   duration: number;
+  type: 'MCQ' | 'CODING';
 }
 
 export default function AssignedTestsPage() {
@@ -175,26 +176,55 @@ export default function AssignedTestsPage() {
   };
 
   const loadTests = async () => {
-    try {
-      const token =
-        localStorage.getItem('access_token');
+  try {
+    const token =
+      localStorage.getItem('access_token');
 
-      const response = await fetch(
-        'http://localhost:3000/tests/assigned',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    const headers = {
+      Authorization: `Bearer ${token}`,
+    };
 
-      const data = await response.json();
+    const [mcqRes, codingRes] =
+      await Promise.all([
+        fetch(
+          'http://localhost:3000/tests/assigned',
+          { headers }
+        ),
+        fetch(
+          'http://localhost:3000/coding-tests/assigned',
+          { headers }
+        ),
+      ]);
 
-      setTests(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    const mcqData = await mcqRes.json();
+    const codingData = await codingRes.json();
+
+    const formattedMcq =
+      mcqData.map((item: any) => ({
+        id: item.test.id,
+        title: item.test.title,
+        category: item.test.category,
+        duration: item.test.duration,
+        type: 'MCQ',
+      }));
+
+    const formattedCoding =
+      codingData.map((item: any) => ({
+        id: item.codingTest.id,
+        title: item.codingTest.title,
+        category: item.codingTest.category,
+        duration: item.codingTest.duration,
+        type: 'CODING',
+      }));
+
+    setTests([
+      ...formattedMcq,
+      ...formattedCoding,
+    ]);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <>
@@ -231,6 +261,12 @@ export default function AssignedTestsPage() {
               >
                 <h2>{test.title}</h2>
 
+                <p>
+  {test.type === 'MCQ'
+    ? '📝 MCQ Assessment'
+    : '💻 Coding Assessment'}
+</p>
+
                 <div className="metadata">
                   <p>
                     📁 Category: {test.category}
@@ -241,7 +277,13 @@ export default function AssignedTestsPage() {
                   </p>
                 </div>
 
-                <Link href={`/tests/${test.id}`}>
+                <Link
+  href={
+    test.type === 'MCQ'
+      ? `/tests/${test.id}`
+      : `/coding/${test.id}`
+  }
+>
                   <button className="btn-start">
                     Start Test
                   </button>
