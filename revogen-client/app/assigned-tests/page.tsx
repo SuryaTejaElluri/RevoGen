@@ -676,6 +676,7 @@ interface Test {
   type: 'MCQ' | 'CODING';
   attempted?: boolean;
   attemptId?: string | null;
+  securityLevel?: string;
 }
 
 type FilterType = 'ALL' | 'MCQ' | 'CODING';
@@ -687,7 +688,7 @@ export default function AssignedTestsPage() {
   const [filter, setFilter] = useState<FilterType>('ALL');
   const router = useRouter();
 
-  const startCodingTest = async (codingTestId: string) => {
+  const startCodingTest = async (codingTestId: string, securityLevel?: string) => {
     try {
       const token = localStorage.getItem('access_token');
       const res = await fetch(
@@ -702,7 +703,8 @@ export default function AssignedTestsPage() {
         alert('Unable to start test');
         return;
       }
-      window.location.href = `/candidate/tests/${data.attemptId}/basic`;
+      const path = securityLevel === 'PRO' ? 'pro' : 'basic';
+      window.location.href = `/candidate/tests/${data.attemptId}/${path}`;
     } catch (err) {
       console.error(err);
       alert('Failed to start coding test');
@@ -743,6 +745,7 @@ export default function AssignedTestsPage() {
         category: item.category,
         duration: item.duration,
         type: 'MCQ',
+        attempted: false, // MCQ completed tests are filtered server-side
       }));
 
       const formattedCoding: Test[] = codingData.map((item: any) => ({
@@ -753,6 +756,7 @@ export default function AssignedTestsPage() {
         type: 'CODING',
         attempted: item.attempted,
         attemptId: item.attemptId,
+        securityLevel: item.securityLevel,
       }));
 
       setTests([...formattedMcq, ...formattedCoding]);
@@ -914,7 +918,7 @@ export default function AssignedTestsPage() {
 
                   {/* Attempted */}
                   {test.attempted && (
-                    <div className="attempted-badge">✓ Previously attempted</div>
+                    <div className="attempted-badge">✓ Completed</div>
                   )}
 
                   {/* Meta chips */}
@@ -929,6 +933,12 @@ export default function AssignedTestsPage() {
                       </span>
                       {test.type === 'MCQ' ? 'Multiple choice' : 'Problem solving'}
                     </span>
+                    {test.securityLevel && (
+                      <span className="meta-chip">
+                        <span className="meta-chip-icon">🔒</span>
+                        {test.securityLevel}
+                      </span>
+                    )}
                   </div>
 
                   <div className="card-divider" />
@@ -938,16 +948,19 @@ export default function AssignedTestsPage() {
                     className={`btn-start ${
                       test.type === 'MCQ' ? 'mcq-btn' : 'coding-btn'
                     }`}
+                    disabled={test.attempted}
+                    style={test.attempted ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
                     onClick={() => {
+                      if (test.attempted) return;
                       if (test.type === 'MCQ') {
                         router.push(`/tests/${test.id}`);
                       } else {
-                        startCodingTest(test.id);
+                        startCodingTest(test.id, test.securityLevel);
                       }
                     }}
                   >
-                    {test.attempted ? 'Resume Test' : 'Start Test'}
-                    <span className="btn-arrow">→</span>
+                    {test.attempted ? '✓ Already Submitted' : 'Start Test'}
+                    {!test.attempted && <span className="btn-arrow">→</span>}
                   </button>
                 </div>
               ))

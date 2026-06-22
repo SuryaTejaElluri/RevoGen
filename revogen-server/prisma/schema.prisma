@@ -48,6 +48,7 @@ model User {
   role String @default("USER")
 
   codingTests CodingTest[]
+  tests       Test[]
 
   profile  Profile?
   resumes  Resume[]
@@ -130,6 +131,9 @@ model Test {
   invitations TestInvitation[]
 
   isPractice Boolean @default(false)
+
+  createdById String?
+  createdBy    User?   @relation(fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
 }
@@ -437,6 +441,10 @@ model CodingAttempt {
 
   createdAt DateTime @default(now())
 
+  // Legacy fields — kept to prevent data loss
+  riskScore  Int?     @default(0)
+  riskLevel  String?  @default("LOW")
+
   submissions CodingSubmission[]
 
   securityEvents CodingSecurityEvent[]
@@ -487,6 +495,8 @@ model CodingSecurityEvent {
   eventType String
 
   details Json?
+
+  screenshotUrl String?
 
   createdAt DateTime @default(now())
 }

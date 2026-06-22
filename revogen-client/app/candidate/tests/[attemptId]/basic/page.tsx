@@ -224,7 +224,7 @@ export default function BasicAssessmentPage() {
 
   // ─── Security Event Logger ───────────────────────────────────────────────────
 
-  const logSecurityEvent = useCallback(async (eventType: string) => {
+  const logSecurityEvent = useCallback(async (eventType: string, details?: Record<string, any>) => {
     try {
       const token = localStorage.getItem("access_token") || "";
       await fetch(`http://localhost:3000/coding-attempts/${attemptId}/security-event`, {
@@ -233,7 +233,14 @@ export default function BasicAssessmentPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ eventType }),
+        body: JSON.stringify({
+          eventType,
+          details: {
+            ...details,
+            timestamp: new Date().toISOString(),
+            url: typeof window !== "undefined" ? window.location.href : "",
+          },
+        }),
       });
     } catch (err) {
       console.error("Security Event Error", err);
@@ -419,25 +426,27 @@ export default function BasicAssessmentPage() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
-        logSecurityEvent("TAB_SWITCH");
+        logSecurityEvent("TAB_SWITCH", { warningCount: warningsRef.current + 1 });
         addWarning("Tab switching is not allowed.");
       }
     };
 
     const handleBlur = () => {
-      logSecurityEvent("WINDOW_BLUR");
+      logSecurityEvent("WINDOW_BLUR", { warningCount: warningsRef.current + 1 });
       addWarning("Window focus lost. Stay on the assessment.");
     };
 
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
-      logSecurityEvent("RIGHT_CLICK");
+      logSecurityEvent("RIGHT_CLICK", { x: e.clientX, y: e.clientY });
       addWarning("Right-clicking is not allowed.");
     };
 
     const handleCopy = (e: ClipboardEvent) => {
       e.preventDefault();
-      logSecurityEvent("COPY_ATTEMPT");
+      logSecurityEvent("COPY_ATTEMPT", {
+        selectedText: window.getSelection()?.toString().slice(0, 100),
+      });
       addWarning("Copying content is not allowed.");
     };
 
@@ -456,19 +465,20 @@ export default function BasicAssessmentPage() {
 
       if (isDevTools) {
         e.preventDefault();
-        logSecurityEvent("DEVTOOLS_SHORTCUT");
+        logSecurityEvent("DEVTOOLS_SHORTCUT", { key: e.key });
         addWarning("Developer tools are not allowed.");
         return;
       }
       if (isBlockedShortcut) {
         e.preventDefault();
+        logSecurityEvent("KEYBOARD_SHORTCUT_BLOCKED", { key: `Ctrl+${e.key.toUpperCase()}` });
         addWarning("Keyboard shortcut blocked.");
       }
     };
 
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        logSecurityEvent("FULLSCREEN_EXIT");
+        logSecurityEvent("FULLSCREEN_EXIT", { warningCount: warningsRef.current + 1 });
         addWarning("Exiting fullscreen is not allowed.");
       }
     };
@@ -779,7 +789,7 @@ export default function BasicAssessmentPage() {
       {/* Final Submit Confirmation */}
       {showFinalConfirm && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={{ ...styles.modal, maxWidth: 520 }}>
             <div style={styles.modalIcon}>🚀</div>
             <h3 style={styles.modalTitle}>Submit Assessment?</h3>
             <p style={styles.modalMsg}>
@@ -787,13 +797,13 @@ export default function BasicAssessmentPage() {
             </p>
             <div style={styles.finalSummaryGrid}>
               <div style={styles.finalSummaryItem}>
-                <span style={styles.finalSummaryLabel}>Questions Completed</span>
+                <span style={styles.finalSummaryLabel}>Solved</span>
                 <span style={styles.finalSummaryValue}>
                   {completedCount}/{attempt.codingTest.questions.length}
                 </span>
               </div>
               <div style={styles.finalSummaryItem}>
-                <span style={styles.finalSummaryLabel}>Current Score</span>
+                <span style={styles.finalSummaryLabel}>Score</span>
                 <span style={{ ...styles.finalSummaryValue, color: "#6366f1" }}>{totalScore}</span>
               </div>
               <div style={styles.finalSummaryItem}>
@@ -801,13 +811,32 @@ export default function BasicAssessmentPage() {
                 <span
                   style={{
                     ...styles.finalSummaryValue,
-                    color: warnings > 0 ? "#f59e0b" : "#10b981",
+                    color: warnings >= 4 ? "#ef4444" : warnings >= 2 ? "#f59e0b" : "#10b981",
                   }}
                 >
                   {warnings}/{MAX_WARNINGS}
                 </span>
               </div>
             </div>
+
+            {/* Security breakdown in submit modal */}
+            {warnings > 0 && (
+              <div style={{
+                width: "100%",
+                background: "rgba(239,68,68,0.06)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                borderRadius: 10,
+                padding: "12px 16px",
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#f87171", letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 8 }}>
+                  ⚠️ Security Violations Recorded
+                </div>
+                <div style={{ fontSize: 12, color: "#8b949e", lineHeight: 1.6 }}>
+                  Your activity has been flagged. These violations will be visible to the recruiter in the assessment report.
+                </div>
+              </div>
+            )}
+
             <div style={styles.modalActions}>
               <button
                 style={{ ...styles.modalBtn, background: "#374151" }}

@@ -105,6 +105,48 @@ finalSubmit(
   );
 }
 
+@UseGuards(AuthGuard('jwt'))
+@Post(':attemptId/pro/final-submit')
+proFinalSubmit(
+  @Param('attemptId') attemptId: string,
+  @Body() body: { proctoringData?: any },
+  @Request() req,
+) {
+  return this.codingAttemptsService.proFinalSubmit(
+    attemptId,
+    req.user.userId,
+    body.proctoringData,
+  );
+}
+
+@UseGuards(AuthGuard('jwt'))
+@Get(':attemptId/pro/report')
+getProAttemptReport(
+  @Param('attemptId') attemptId: string,
+  @Request() req,
+) {
+  return this.codingAttemptsService.getProAttemptReport(
+    attemptId,
+    req.user.userId,
+  );
+}
+
+
+@UseGuards(AuthGuard('jwt'))
+@Post(':attemptId/security-screenshot')
+uploadSecurityScreenshot(
+  @Param('attemptId') attemptId: string,
+  @Body() body: { eventType: string; imageDataUrl: string; details?: any },
+  @Request() req,
+) {
+  return this.codingAttemptsService.uploadSecurityScreenshot(
+    attemptId,
+    req.user.userId,
+    body.eventType,
+    body.imageDataUrl,
+    body.details,
+  );
+}
 
 @UseGuards(AuthGuard('jwt'))
 @Post(':attemptId/security-event')
@@ -123,6 +165,18 @@ logSecurityEvent(
     req.user.userId,
     dto.eventType,
     dto.details,
+  );
+}
+
+@UseGuards(AuthGuard('jwt'))
+@Get(':attemptId/report')
+getAttemptReport(
+  @Param('attemptId') attemptId: string,
+  @Request() req,
+) {
+  return this.codingAttemptsService.getAttemptReport(
+    attemptId,
+    req.user.userId,
   );
 }
 }

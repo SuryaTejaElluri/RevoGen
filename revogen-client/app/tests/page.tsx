@@ -15,10 +15,13 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:3000/tests')
+    const token = localStorage.getItem('access_token');
+    fetch('http://localhost:3000/tests/assigned', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((res) => res.json())
       .then((data) => {
-        setTests(data);
+        setTests(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {

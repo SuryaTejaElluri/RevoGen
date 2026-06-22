@@ -227,6 +227,18 @@ export default function AssessmentViewPage() {
               <button onClick={toggleTheme} className="btn secondary outline glass-btn theme-toggle">
                 {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
               </button>
+              <button
+                onClick={() => router.push(`/admin/coding-tests/${assessmentId}/assign`)}
+                className="btn secondary outline glass-btn"
+              >
+                👥 Assign Candidates
+              </button>
+              <button
+                onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                className="btn secondary outline glass-btn"
+              >
+                📊 View Results
+              </button>
               <button 
                 onClick={() => router.push('/admin/tests')} 
                 className="btn secondary outline glass-btn"

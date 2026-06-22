@@ -41,6 +41,8 @@ export interface Invitation {
   status: string;
   invitedAt: string;
   createdAt: string;
+  attemptStatus?: string;
+  attemptId?: string | null;
 }
 
 export default function AssignPage() {
@@ -250,12 +252,26 @@ export default function AssignPage() {
             <h1>💻 Coding Assessment Assignment</h1>
             <p className="subtitle">Invite candidates and manage assessment access.</p>
           </div>
-          <button 
-            onClick={() => router.push('/tests')} 
-            className="btn secondary outline"
-          >
-            Back To Tests
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+              className="btn secondary outline"
+            >
+              📊 View Results
+            </button>
+            <button
+              onClick={() => router.push(`/admin/coding-tests/${assessmentId}`)}
+              className="btn secondary outline"
+            >
+              📄 View Details
+            </button>
+            <button 
+              onClick={() => router.push('/admin/tests')} 
+              className="btn secondary outline"
+            >
+              ← Back To Tests
+            </button>
+          </div>
         </header>
 
         {/* Top Summary Cards */}
@@ -321,7 +337,8 @@ export default function AssignPage() {
                   <tr>
                     <th>Email</th>
                     <th>Linked User</th>
-                    <th>Status</th>
+                    <th>Invite Status</th>
+                    <th>Attempt Status</th>
                     <th>Invited At</th>
                     <th>Actions</th>
                   </tr>
@@ -332,7 +349,7 @@ export default function AssignPage() {
                       <td className="font-medium text-white">{inv.candidateEmail}</td>
                       <td>
                         <span className={`badge ${inv.userId ? 'badge-blue' : 'badge-gray'}`}>
-                          {inv.userId ? 'Yes' : 'No'}
+                          {inv.userId ? 'Registered' : 'Not Registered'}
                         </span>
                       </td>
                       <td>
@@ -340,10 +357,32 @@ export default function AssignPage() {
                           {inv.status}
                         </span>
                       </td>
+                      <td>
+                        {inv.attemptStatus ? (
+                          <span className={`badge ${
+                            inv.attemptStatus === 'COMPLETED' ? 'status-completed' :
+                            inv.attemptStatus === 'IN_PROGRESS' ? 'status-in-progress' : 'badge-gray'
+                          }`}>
+                            {inv.attemptStatus === 'COMPLETED' ? '✅ Completed' :
+                             inv.attemptStatus === 'IN_PROGRESS' ? '🔄 In Progress' : inv.attemptStatus}
+                          </span>
+                        ) : (
+                          <span className="badge badge-gray">Not Started</span>
+                        )}
+                      </td>
                       <td className="text-muted">
                         {new Date(inv.invitedAt).toLocaleString()}
                       </td>
-                      <td>
+                      <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {inv.attemptId && (
+                          <button
+                            onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                            className="btn secondary sm"
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            📊 Report
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRemove(inv.id)}
                           className="btn danger sm"
@@ -695,6 +734,18 @@ const styles = `
     background: rgba(245, 158, 11, 0.1);
     color: #fcd34d;
     border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .status-completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .status-in-progress {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.2);
   }
 
   .badge-blue {
