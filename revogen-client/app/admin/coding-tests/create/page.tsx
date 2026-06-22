@@ -18,9 +18,9 @@ export default function CreateCodingAssessmentPage() {
   // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
   const [duration, setDuration] = useState<number | ''>(60);
-  
+  const [securityLevel, setSecurityLevel] = useState('BASIC');
+
   // Data State
   const [questions, setQuestions] = useState<CodingQuestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ export default function CreateCodingAssessmentPage() {
 
   const loadQuestions = async () => {
     try {
-      const response = await fetch('http://localhost:3000/coding-questions');
+      const response = await fetch('http://localhost:3000/coding-question-bank');
       if (response.ok) {
         const data = await response.json();
         setQuestions(data);
@@ -67,9 +67,20 @@ export default function CreateCodingAssessmentPage() {
     });
   }, [questions, searchQuery, filterCategory, filterDifficulty]);
 
+  // Selected Questions Breakdown
+  const selectedStats = useMemo(() => {
+    const selected = questions.filter(q => selectedIds.includes(q.id));
+    return {
+      total: selected.length,
+      easy: selected.filter(q => q.difficulty?.toUpperCase() === 'EASY').length,
+      medium: selected.filter(q => q.difficulty?.toUpperCase() === 'MEDIUM').length,
+      hard: selected.filter(q => q.difficulty?.toUpperCase() === 'HARD').length,
+    };
+  }, [questions, selectedIds]);
+
   // Handlers
   const toggleQuestion = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(qId => qId !== id) : [...prev, id]
     );
   };
@@ -83,100 +94,59 @@ export default function CreateCodingAssessmentPage() {
     }
   };
 
-const handleSubmit = async (
-  e: React.FormEvent,
-) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-  setError('');
-
-  if (!title.trim()) {
-    return setError(
-      'Title is required.',
-    );
-  }
-
-  if (!duration) {
-    return setError(
-      'Duration is required.',
-    );
-  }
-
-  if (
-    selectedIds.length === 0
-  ) {
-    return setError(
-      'Please select at least one question.',
-    );
-  }
-
-  setSubmitting(true);
-
-  try {
-    const token =
-      localStorage.getItem(
-        'access_token',
-      );
-
-    const payload = {
-      title,
-      description,
-      category,
-      duration:
-        Number(duration),
-      questionIds:
-        selectedIds,
-    };
-
-    const response =
-      await fetch(
-        'http://localhost:3000/coding-tests',
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type':
-              'application/json',
-
-            Authorization:
-              `Bearer ${token}`,
-          },
-
-          body: JSON.stringify(
-            payload,
-          ),
-        },
-      );
-
-    const data =
-      await response.json();
-
-    if (!response.ok) {
-      console.log(
-        'Create Error:',
-        data,
-      );
-
-      throw new Error(
-        data.message ||
-          'Failed to create assessment.',
-      );
+    if (!title.trim()) {
+      return setError('Title is required.');
     }
 
-    router.push(
-      '/admin/coding-tests',
-    );
-  } catch (err: any) {
-    console.error(err);
+    if (!duration) {
+      return setError('Duration is required.');
+    }
 
-    setError(
-      err.message ||
-        'An error occurred while creating the assessment.',
-    );
-  } finally {
-    setSubmitting(false);
-  }
-};
+    if (selectedIds.length === 0) {
+      return setError('Please select at least one question.');
+    }
+
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('access_token');
+
+      const payload = {
+        title,
+        description,
+        duration: Number(duration),
+        securityLevel,
+        questionIds: selectedIds,
+      };
+
+      const response = await fetch('http://localhost:3000/coding-tests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.log('Create Error:', data);
+        throw new Error(data.message || 'Failed to create assessment.');
+      }
+
+      router.push(`/admin/coding-tests/${data.codingTestId}/assign`);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An error occurred while creating the assessment.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -350,6 +320,24 @@ const handleSubmit = async (
         .badge-purple { background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(188,140,255,0.2); }
         .badge-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid rgba(248,81,73,0.2); }
 
+        /* ── Security Level Toggle ── */
+        .security-toggle { display: flex; gap: 12px; }
+        .security-option {
+          flex: 1; display: flex; flex-direction: column; gap: 4px;
+          padding: 12px 14px; border: 1px solid var(--border);
+          border-radius: var(--radius-md); background: var(--bg-card);
+          cursor: pointer; text-align: left; transition: all 0.2s;
+          font-family: var(--font-main);
+        }
+        .security-option:hover { border-color: var(--border-hover); background: var(--bg-elevated); }
+        .security-option.active { border-color: var(--accent); background: var(--accent-soft); }
+        .security-option-title {
+          font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+          color: var(--text-primary); text-transform: uppercase;
+        }
+        .security-option.active .security-option-title { color: var(--accent); }
+        .security-option-desc { font-size: 12px; color: var(--text-secondary); }
+
         /* ── Sidebar ── */
         .sidebar-sticky { position: sticky; top: 24px; }
         .selected-list { max-height: 400px; overflow-y: auto; padding-right: 8px; margin-bottom: 20px; }
@@ -368,6 +356,28 @@ const handleSubmit = async (
           color: var(--text-secondary); cursor: pointer; font-size: 16px;
         }
         .remove-btn:hover { color: var(--danger); }
+
+        /* ── Difficulty Stats Row ── */
+        .difficulty-stats {
+          display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+
+        /* ── Summary Box ── */
+        .summary-box {
+          background: var(--bg-card); border: 1px solid var(--border);
+          border-radius: var(--radius-md); padding: 4px 16px;
+          margin-bottom: 20px;
+        }
+        .summary-row {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 0; font-size: 13px;
+        }
+        .summary-row + .summary-row { border-top: 1px solid var(--border); }
+        .summary-label { color: var(--text-secondary); font-weight: 500; }
+        .summary-value {
+          color: var(--text-primary); font-weight: 600;
+          font-family: var(--font-mono); font-size: 13px;
+        }
 
         /* ── Buttons & Alerts ── */
         .submit-btn {
@@ -444,14 +454,25 @@ const handleSubmit = async (
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    placeholder="e.g., Backend, DSA Screening"
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                  />
+                  <label className="form-label">Security Level</label>
+                  <div className="security-toggle">
+                    <button
+                      type="button"
+                      className={`security-option ${securityLevel === 'BASIC' ? 'active' : ''}`}
+                      onClick={() => setSecurityLevel('BASIC')}
+                    >
+                      <span className="security-option-title">Basic</span>
+                      <span className="security-option-desc">Standard test environment</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`security-option ${securityLevel === 'PRO' ? 'active' : ''}`}
+                      onClick={() => setSecurityLevel('PRO')}
+                    >
+                      <span className="security-option-title">Pro</span>
+                      <span className="security-option-desc">Enhanced proctoring &amp; lockdown</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
@@ -535,8 +556,14 @@ const handleSubmit = async (
             <div className="sidebar-col">
               <div className="test-card sidebar-sticky">
                 <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Selected</span>
-                  <span className="meta-badge badge-blue">{selectedIds.length} Questions</span>
+                  <span>Selected Questions</span>
+                  <span className="meta-badge badge-blue">{selectedStats.total}</span>
+                </div>
+
+                <div className="difficulty-stats">
+                  <span className="meta-badge badge-green">Easy: {selectedStats.easy}</span>
+                  <span className="meta-badge badge-yellow">Medium: {selectedStats.medium}</span>
+                  <span className="meta-badge badge-danger">Hard: {selectedStats.hard}</span>
                 </div>
 
                 {error && <div className="alert-error">{error}</div>}
@@ -569,6 +596,21 @@ const handleSubmit = async (
                     })}
                   </div>
                 )}
+
+                <div className="summary-box">
+                  <div className="summary-row">
+                    <span className="summary-label">Duration</span>
+                    <span className="summary-value">{duration ? `${duration} min` : '—'}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="summary-label">Security Level</span>
+                    <span className="summary-value">{securityLevel}</span>
+                  </div>
+                  <div className="summary-row">
+                    <span className="summary-label">Selected Questions</span>
+                    <span className="summary-value">{selectedIds.length}</span>
+                  </div>
+                </div>
 
                 <button 
                   type="submit" 

@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "CodingAttempt" ADD COLUMN     "candidateName" TEXT,
+ADD COLUMN     "riskLevel" TEXT NOT NULL DEFAULT 'LOW',
+ADD COLUMN     "riskScore" INTEGER NOT NULL DEFAULT 0,
+ALTER COLUMN "status" SET DEFAULT 'ASSIGNED';

@@ -3,9 +3,9 @@ export class CreateCodingTestDto {
 
   description?: string;
 
-  category?: string;
-
   duration!: number;
+
+  securityLevel!: string;
 
   questionIds!: string[];
 }

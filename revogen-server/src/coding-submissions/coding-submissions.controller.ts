@@ -1,12 +1,18 @@
 import {
   Body,
   Controller,
+  Get,
+  Param,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+
+import { AuthGuard } from '@nestjs/passport';
 
 import { CodingSubmissionsService } from './coding-submissions.service';
 
 import { CreateRunCodeDto } from './dto/create-run-code.dto';
+
 import { CreateSubmitCodeDto } from './dto/create-submit-code.dto';
 
 @Controller('coding-submissions')
@@ -15,21 +21,36 @@ export class CodingSubmissionsController {
     private readonly codingSubmissionsService: CodingSubmissionsService,
   ) {}
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('run')
-  async runCode(
-    @Body() dto: CreateRunCodeDto,
+  runCode(
+    @Body()
+    dto: CreateRunCodeDto,
   ) {
-    return this.codingSubmissionsService.runCode(
-      dto,
+    return this.codingSubmissionsService.runCode(dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('submit')
+  submitCode(
+    @Body()
+    dto: CreateSubmitCodeDto,
+  ) {
+    return this.codingSubmissionsService.submitCode(dto);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('attempt/:attemptId')
+  getSubmissions(
+    @Param('attemptId')
+    attemptId: string,
+  ) {
+    return this.codingSubmissionsService.getSubmissions(
+      attemptId,
     );
   }
 
-  @Post('submit')
-  async submitCode(
-    @Body() dto: CreateSubmitCodeDto,
-  ) {
-    return this.codingSubmissionsService.submitCode(
-      dto,
-    );
-  }
+
+
+ 
 }

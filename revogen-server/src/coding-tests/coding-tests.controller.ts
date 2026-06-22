@@ -4,191 +4,112 @@ import {
   Post,
   Body,
   Param,
-  Patch,
-  Delete,
-} from '@nestjs/common';
-import { FinalSubmitDto }
-from './dto/final-submit.dto';
-import { CreateSecurityEventDto }
-from './dto/create-security-event.dto';
-import { AdminGuard } from '../auth/admin.guard';
-import {
-  
+   Delete,
   Request,
   UseGuards,
 } from '@nestjs/common';
 
-import { AuthGuard } from '@nestjs/passport';
 
-import { CodingTestsService } from './coding-tests.service';
+//import { CodingAttemptsService } from '../coding-attempts/coding-attempts.service';
+import { AuthGuard }
+from '@nestjs/passport';
 
-import { CreateCodingTestDto } from './dto/create-coding-test.dto';
+import { CodingTestsService }
+from './coding-tests.service';
 
-import { UpdateCodingTestDto } from './dto/update-coding-test.dto';
-import { StartAssessmentDto } from './dto/start-assessment.dto';
-import { InviteCodingCandidatesDto } from './dto/invite-coding-candidates.dto';
+import { CreateCodingTestDto }
+from './dto/create-coding-test.dto';
+
+import { AdminGuard } from '../auth/admin.guard';
+
+
+import { InviteCandidateDto }
+from './dto/invite-candidate.dto';
+
 @Controller('coding-tests')
 export class CodingTestsController {
   constructor(
-    private readonly codingTestsService: CodingTestsService,
+    private readonly codingTestsService:
+    //private codingAttemptsService: CodingAttemptsService,
+    CodingTestsService,
   ) {}
 
-@Get('assigned')
-@UseGuards(AuthGuard('jwt'))
-getAssignedCodingTests(
-  @Request() req,
-) {
-  return this.codingTestsService.getAssignedCodingTests(
-    req.user.email,
-  );
-}
+  @UseGuards(
+    AuthGuard('jwt'),
+  )
+  @Post()
+  create(
+    @Body()
+    dto: CreateCodingTestDto,
 
-
- @UseGuards(AuthGuard('jwt'))
-@Post()
-create(
-  @Body() dto: CreateCodingTestDto,
-  @Request() req,
-) {
-  return this.codingTestsService.create(
-    dto,
-    req.user.userId,
-  );
-}
-
- @UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Get()
-findAll(
-  @Request() req,
-) {
-  return this.codingTestsService.findAll(
-    req.user.userId,
-  );
-}
-
-
-@UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Patch(':id')
-update(
-  @Param('id') id: string,
-  @Body() dto: UpdateCodingTestDto,
-  @Request() req,
-) {
-  return this.codingTestsService.update(
-    id,
-    dto,
-    req.user.userId,
-  );
-}
-@UseGuards(AuthGuard('jwt'))
-@Get(':id/candidate')
-getCandidateAssessment(
-  @Param('id') id: string,
-  @Request() req,
-) {
-  return this.codingTestsService.getCandidateAssessment(
-    id,
-    req.user.email,
-  );
-}
-
-@UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Delete(':id')
-remove(
-  @Param('id') id: string,
-  @Request() req,
-) {
-  return this.codingTestsService.remove(
-    id,
-    req.user.userId,
-  );
-}
-
-
-@UseGuards(AuthGuard('jwt'))
-@Post('start')
-startAssessment(
-  @Body() dto: StartAssessmentDto,
-
-  @Request() req,
-) {
-  return this.codingTestsService.startAssessment(
-    dto,
-    req.user.email,
-  );
-}
-
+    @Request()
+    req,
+  ) {
+    return this.codingTestsService.create(
+      dto,
+      req.user.userId,
+    );
+  }
 
   @UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Get(':id')
-findOne(
-  @Param('id') id: string,
-  @Request() req,
-) {
-  return this.codingTestsService.findOne(
-    id,
-    req.user.userId,
-  );
-}
-@UseGuards(AuthGuard('jwt'))
-@Post('security-event')
-   @Post('security-event')
-  async logSecurityEvent(
-    @Body() dto: CreateSecurityEventDto,
+    AuthGuard('jwt'),
+  )
+  @Get()
+  findAll(
+    @Request()
+    req,
   ) {
-    return this.codingTestsService.logSecurityEvent(dto);
+    return this.codingTestsService.findAll(
+      req.user.userId,
+    );
   }
 
 
-@UseGuards(AuthGuard('jwt'))
-  @Post('final-submit')
-async finalSubmit(
-  @Body() dto: FinalSubmitDto,
-) {
-  return this.codingTestsService.finalSubmit(
-    dto,
-  );
-}
-
-@UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Get('result/:attemptId')
-getResult(
-  @Param('attemptId')
-  attemptId: string,
-
+  @UseGuards(AuthGuard('jwt'))
+@Get(':testId/results')
+getResults(
+  @Param('testId') testId: string,
   @Request() req,
 ) {
-  return this.codingTestsService.getResult(
-    attemptId,
+  return this.codingTestsService.getResults(
+    testId,
     req.user.userId,
   );
 }
 
-@UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
-)
-@Get(':id/security-events')
-getSecurityEvents(
-  @Param('id') id: string,
+ @UseGuards(AuthGuard('jwt'))
+@Get('assigned')
+getAssignedTests(
   @Request() req,
 ) {
-  return this.codingTestsService.getSecurityEvents(
+  return this.codingTestsService.getAssignedTests(
+    req.user.userId,
+  );
+}
+
+
+
+// @Post(':id/start')
+// @UseGuards(AuthGuard('jwt'))
+// startTest(
+//   @Param('id') id: string,
+//   @Request() req,
+// ) {
+//   return this.codingAttemptsService.startTest(
+//     id,
+//     req.user.userId,
+//   );
+// }
+
+
+@UseGuards(AuthGuard('jwt'))
+@Get(':id/invitations')
+findInvitations(
+  @Param('id') id: string,
+
+  @Request() req,
+) {
+  return this.codingTestsService.findInvitations(
     id,
     req.user.userId,
   );
@@ -196,31 +117,43 @@ getSecurityEvents(
 
 
 
-@UseGuards(
-  AuthGuard('jwt'),
-  AdminGuard,
+@UseGuards(AuthGuard('jwt'))
+@Delete(
+  ':id/invitations/:invitationId',
 )
-@Get(':id/attempts')
-getAttempts(
+removeInvitation(
   @Param('id') id: string,
+
+  @Param('invitationId')
+  invitationId: string,
+
   @Request() req,
 ) {
-  return this.codingTestsService.getAttempts(
+  return this.codingTestsService.removeInvitation(
     id,
+    invitationId,
     req.user.userId,
   );
 }
 
-@UseGuards(AuthGuard('jwt'))
+
+
+
+
+
+  @UseGuards(AuthGuard('jwt'))
 @Post(':id/invite')
-inviteCandidates(
-  @Param('id') id: string,
+inviteCandidate(
+  @Param('id')
+  id: string,
 
-  @Body() dto: InviteCodingCandidatesDto,
+  @Body()
+  dto: InviteCandidateDto,
 
-  @Request() req,
+  @Request()
+  req,
 ) {
-  return this.codingTestsService.inviteCandidates(
+  return this.codingTestsService.inviteCandidate(
     id,
     dto,
     req.user.userId,
@@ -230,9 +163,11 @@ inviteCandidates(
 @UseGuards(AuthGuard('jwt'))
 @Get(':id/invitations')
 getInvitations(
-  @Param('id') id: string,
+  @Param('id')
+  id: string,
 
-  @Request() req,
+  @Request()
+  req,
 ) {
   return this.codingTestsService.getInvitations(
     id,
@@ -240,4 +175,21 @@ getInvitations(
   );
 }
 
+
+  @UseGuards(
+    AuthGuard('jwt'),
+  )
+  @Get(':id')
+  findOne(
+    @Param('id')
+    id: string,
+
+    @Request()
+    req,
+  ) {
+    return this.codingTestsService.findOne(
+      id,
+      req.user.userId,
+    );
+  }
 }

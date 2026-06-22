@@ -1,5 +1,9 @@
 export class CreateRunCodeDto {
-  codingQuestionId!: string;
-  language!: string;
-  sourceCode!: string;
+  attemptId: string;
+
+  questionId: string;
+
+  language: string;
+
+  sourceCode: string;
 }

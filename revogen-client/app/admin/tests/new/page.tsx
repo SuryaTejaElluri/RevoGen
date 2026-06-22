@@ -78,6 +78,9 @@ export default function CreateTestPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
+
+console.log("QUESTION STATS RESPONSE:", data);
+console.log("IS ARRAY:", Array.isArray(data));
       const map: Record<string, number> = {};
       data.forEach((item: { category: string; count: number }) => {
         map[item.category] = item.count;

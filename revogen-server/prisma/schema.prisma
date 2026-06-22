@@ -33,6 +33,11 @@ enum CodingCategory {
   MATH
 }
 
+enum UserRole {
+  ADMIN
+  USER
+}
+
 model User {
   id       String  @id @default(uuid())
   name     String
@@ -42,12 +47,15 @@ model User {
 
   role String @default("USER")
 
-  profile     Profile?
-  resumes     Resume[]
-  attempts    Attempt[]
-  submissions CodingSubmission[]
-
   codingTests CodingTest[]
+
+  profile  Profile?
+  resumes  Resume[]
+  attempts Attempt[]
+
+codingInvitations CodingInvitation[]
+
+codingAttempts CodingAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -269,54 +277,15 @@ model ProctoringReport {
   createdAt DateTime @default(now())
 }
 
-model CodingQuestion {
-  id String @id @default(uuid())
-
-  title String
-  slug  String @unique
-
-  description String @db.Text
-  constraints String @db.Text
-
-  inputFormat  String @db.Text
-  outputFormat String @db.Text
-
-  difficulty Difficulty
-  category   CodingCategory
-
-  starterCode  Json?
-  solutionCode String? @db.Text
-
-  timeLimit   Int @default(1000)
-  memoryLimit Int @default(256)
-  submissions CodingSubmission[]
-  testCases CodingTestCase[]
-
-  codingTests CodingTestQuestion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("coding_questions")
+enum CodingDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }
 
-model CodingTestCase {
-  id String @id @default(uuid())
-
-  questionId String
-
-  question CodingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  input          String @db.Text
-  expectedOutput String @db.Text
-
-  isHidden Boolean @default(false)
-  isActive Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("coding_test_cases")
+enum CodingSecurityLevel {
+  BASIC
+  PRO
 }
 
 model CodingTest {
@@ -326,26 +295,79 @@ model CodingTest {
 
   description String?
 
-  category String?
-  isActive Boolean @default(true)
-
   duration Int
+
+  securityLevel CodingSecurityLevel
 
   createdById String
 
   createdBy User @relation(fields: [createdById], references: [id])
 
-  attempts AssessmentAttempt[]
+  isActive Boolean @default(true)
 
   questions CodingTestQuestion[]
 
-  assignments CodingAssignment[]
+  invitations CodingInvitation[]
+
+  attempts CodingAttempt[]
 
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
+}
 
-  @@map("coding_tests")
+model CodingQuestionBank {
+  id String @id @default(uuid())
+
+  title String
+
+  slug String @unique
+
+  category String
+
+  
+
+  difficulty CodingDifficulty
+
+  description String
+
+  inputFormat String?
+
+  outputFormat String?
+
+  constraints String?
+
+  examples Json?
+
+  starterCodes Json?
+
+  questions CodingTestQuestion[]
+
+  submissions CodingSubmission[]
+
+  testCases CodingQuestionTestCase[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model CodingQuestionTestCase {
+  id String @id @default(uuid())
+
+  questionId String
+
+  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  input String
+
+  expectedOutput String
+
+  explanation String?
+
+  isHidden Boolean @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 model CodingTestQuestion {
@@ -353,41 +375,93 @@ model CodingTestQuestion {
 
   codingTestId String
 
-  codingQuestionId String
+  questionId String
 
-  marks Int @default(100)
+  order Int
 
-  orderNo Int @default(1)
+  scoreWeight Int @default(100)
 
   codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
 
-  codingQuestion CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
+  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@unique([codingTestId, codingQuestionId])
-  @@map("coding_test_questions")
+  @@unique([codingTestId, questionId])
 }
+
+
+model CodingInvitation {
+  id String @id @default(uuid())
+
+  codingTestId String
+  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+
+  
+  candidateEmail String
+
+  userId String?
+  user User? @relation(fields: [userId], references: [id])
+
+  status String @default("PENDING")
+
+  invitedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@unique([codingTestId, candidateEmail])
+}
+
+
+model CodingAttempt {
+  id String @id @default(uuid())
+
+  codingTestId String
+  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  candidateEmail String
+
+  status String @default("IN_PROGRESS")
+
+  totalQuestions Int @default(0)
+
+  completedQuestions Int @default(0)
+
+  totalScore Int @default(0)
+
+  percentage Float @default(0)
+
+  startedAt DateTime @default(now())
+
+  submittedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  submissions CodingSubmission[]
+
+  securityEvents CodingSecurityEvent[]
+
+
+ 
+
+  @@unique([codingTestId, userId])
+}
+
 
 model CodingSubmission {
   id String @id @default(uuid())
 
-  codingTestId String
-  codingQuestionId String
+  attemptId String
+  attempt CodingAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
-  codingQuestion CodingQuestion @relation(fields: [codingQuestionId], references: [id], onDelete: Cascade)
-
-  userId String?
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  candidateEmail String?
+  questionId String
+  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   language String
 
-  attemptId String?
+  sourceCode String? @db.Text
 
-  sourceCode String @db.Text
-
-  stdout String? @db.Text
+  status String
 
   passedCases Int @default(0)
 
@@ -395,111 +469,24 @@ model CodingSubmission {
 
   score Int @default(0)
 
-  status String @default("PENDING")
+  executionTime Float?
 
-  submittedAt DateTime @default(now())
+  memoryUsed Int?
 
-  createdAt DateTime @default(now())
-
-  @@map("coding_submissions")
-}
-
-
-model SecurityEvent {
-  id String @id @default(uuid())
-
-  codingTestId String
-
-  attemptId String?
-
-  eventType String
-
-  details String? @db.Text
+  submissionNumber Int @default(1)
 
   createdAt DateTime @default(now())
-
-  @@map("security_events")
 }
 
-model AssessmentAttempt {
-  id String @id @default(uuid())
-
-  codingTestId String
-
-  codingTest CodingTest @relation(fields: [codingTestId], references: [id])
-
-  candidateName String?
-  candidateEmail String?
-
-  totalQuestions Int
-
-  completedQuestions Int
-
-  totalScore Int
-
-  percentage Int
-
-  securityViolations Int @default(0)
-
-  riskScore Int @default(0)
-
-  riskLevel String @default("LOW")
-
-  status String
-
-  startedAt DateTime @default(now())
-
-  submittedAt DateTime
-
-  createdAt DateTime @default(now())
-
-  @@map("assessment_attempts")
-}
-
-model AssessmentQuestionResult {
+model CodingSecurityEvent {
   id String @id @default(uuid())
 
   attemptId String
+  attempt CodingAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
-  codingQuestionId String
+  eventType String
 
-  questionTitle String
-
-  score Int
-
-  maxScore Int
-
-  passedCases Int
-
-  totalCases Int
-
-  status String
+  details Json?
 
   createdAt DateTime @default(now())
-
-  @@map("assessment_question_results")
-}
-
-model CodingAssignment {
-  id String @id @default(uuid())
-
-  codingTestId String
-
-  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
-
-  candidateName String
-
-  candidateEmail String
-
-  accessToken String @unique
-
-  status String @default("PENDING")
-
-  attemptId String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([candidateEmail, codingTestId])
-
-  @@map("coding_assignments")
 }

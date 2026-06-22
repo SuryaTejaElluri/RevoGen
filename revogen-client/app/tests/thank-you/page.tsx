@@ -43,12 +43,12 @@ const styles = `
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 24px;
+    padding: 100px 24px 100px;      /* ← generous top & bottom breathing room */
     position: relative;
     overflow: hidden;
   }
 
-  /* ── Background radial glow ── */
+  /* ── Background radial glows ── */
   .ty-shell::before {
     content: '';
     position: absolute;
@@ -78,12 +78,17 @@ const styles = `
     z-index: 1;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 24px;
-    padding: 60px 56px;
-    max-width: 540px;
+    border-radius: 28px;           /* ← slightly rounder */
+    padding: 88px 64px 64px;     /* ← more top padding inside card, balanced bottom */
+    max-width: 560px;              /* ← slightly wider for better proportion */
     width: 100%;
     text-align: center;
     animation: cardReveal 0.6s cubic-bezier(0.34,1.46,0.64,1) both;
+    /* subtle inner glow at top */
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 32px 64px -12px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
   @keyframes cardReveal {
@@ -94,9 +99,9 @@ const styles = `
   /* ── Success Ring ── */
   .success-ring {
     position: relative;
-    width: 88px;
-    height: 88px;
-    margin: 0 auto 32px;
+    width: 96px;                   /* ← slightly larger ring */
+    height: 96px;
+    margin: 0 auto 40px;           /* ← more space below ring */
     animation: ringPop 0.5s 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
   }
 
@@ -106,8 +111,8 @@ const styles = `
   }
 
   .success-ring svg {
-    width: 88px;
-    height: 88px;
+    width: 96px;
+    height: 96px;
     position: absolute;
     top: 0; left: 0;
   }
@@ -123,10 +128,10 @@ const styles = `
     stroke: var(--success);
     stroke-width: 3;
     stroke-linecap: round;
-    stroke-dasharray: 245;
-    stroke-dashoffset: 245;
+    stroke-dasharray: 267;         /* ← updated for r=42.5 */
+    stroke-dashoffset: 267;
     animation: ringFill 1s 0.5s ease forwards;
-    filter: drop-shadow(0 0 6px var(--success-glow));
+    filter: drop-shadow(0 0 8px var(--success-glow));
   }
 
   @keyframes ringFill {
@@ -139,7 +144,7 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
+    font-size: 36px;               /* ← slightly larger check */
     animation: iconPop 0.4s 1.2s cubic-bezier(0.34,1.56,0.64,1) both;
     opacity: 0;
   }
@@ -151,20 +156,21 @@ const styles = `
 
   /* ── Typography ── */
   .ty-title {
-    font-size: 28px;
+    font-size: 30px;               /* ← slightly larger */
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 14px;           /* ← more gap to subtitle */
     animation: fadeUp 0.5s 0.7s ease both;
     opacity: 0;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
   }
 
   .ty-subtitle {
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 1.75;             /* ← more open line height */
     color: var(--text-secondary);
-    margin-bottom: 36px;
+    margin-bottom: 40px;           /* ← more space before chips */
     animation: fadeUp 0.5s 0.85s ease both;
     opacity: 0;
   }
@@ -178,8 +184,8 @@ const styles = `
   .info-chips {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 36px;
+    gap: 12px;                     /* ← more gap between chips */
+    margin-bottom: 40px;           /* ← more space before divider */
     animation: fadeUp 0.5s 1s ease both;
     opacity: 0;
   }
@@ -187,22 +193,27 @@ const styles = `
   .info-chip {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 13px 16px;
+    gap: 14px;                     /* ← more gap between icon & text */
+    padding: 15px 18px;            /* ← more padding inside chip */
     background: var(--surface-2);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 14px;           /* ← slightly rounder chips */
     text-align: left;
+    transition: border-color 0.2s ease;
+  }
+
+  .info-chip:hover {
+    border-color: var(--border-hover);
   }
 
   .chip-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 9px;
+    width: 38px;                   /* ← slightly bigger icon box */
+    height: 38px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 17px;
     flex-shrink: 0;
   }
 
@@ -210,14 +221,25 @@ const styles = `
   .chip-icon.blue   { background: var(--accent-dim); }
   .chip-icon.amber  { background: rgba(245,158,11,0.1); }
 
-  .chip-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-  .chip-text strong { color: var(--text-primary); font-weight: 600; display: block; font-size: 13px; }
+  .chip-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+  }
+
+  .chip-text strong {
+    color: var(--text-primary);
+    font-weight: 600;
+    display: block;
+    font-size: 13.5px;             /* ← slightly bolder label */
+    margin-bottom: 2px;            /* ← tiny gap between label and description */
+  }
 
   /* ── Divider ── */
   .ty-divider {
     height: 1px;
     background: var(--border);
-    margin-bottom: 28px;
+    margin-bottom: 32px;           /* ← more space below divider */
     animation: fadeUp 0.5s 1.1s ease both;
     opacity: 0;
   }
@@ -236,8 +258,8 @@ const styles = `
     align-items: center;
     justify-content: center;
     gap: 9px;
-    padding: 14px 24px;
-    border-radius: 12px;
+    padding: 15px 24px;            /* ← taller buttons */
+    border-radius: 13px;
     font-size: 14px;
     font-weight: 600;
     font-family: var(--font);
@@ -246,17 +268,19 @@ const styles = `
     transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
     text-decoration: none;
     width: 100%;
+    letter-spacing: 0.01em;
   }
 
   .btn-primary {
     background: var(--accent);
     color: #fff;
     border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(79,142,247,0.3);
   }
 
   .btn-primary:hover {
     background: #3b7de8;
-    box-shadow: 0 0 0 4px var(--accent-glow);
+    box-shadow: 0 0 0 4px var(--accent-glow), 0 4px 16px rgba(79,142,247,0.4);
     transform: translateY(-1px);
   }
 
@@ -275,20 +299,22 @@ const styles = `
 
   /* ── Timer bar ── */
   .redirect-bar {
-    margin-top: 20px;
+    margin-top: 28px;              /* ← more space above countdown bar */
     animation: fadeUp 0.5s 1.4s ease both;
     opacity: 0;
+    padding: 0 4px;                /* ← slight inset so bar doesn't touch card edge */
   }
 
   .redirect-label {
     font-size: 12px;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;           /* ← more gap between label and track */
     font-family: var(--mono);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+    letter-spacing: 0.03em;
   }
 
   .redirect-track {
@@ -327,6 +353,41 @@ const styles = `
     90%  { opacity: 0.3; }
     100% { opacity: 0; transform: translateY(-20vh) scale(1); }
   }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .ty-shell {
+      padding: 48px 16px 64px;     /* ← still generous on mobile */
+      justify-content: flex-start; /* ← don't squish content on short phones */
+    }
+
+    .ty-card {
+      padding: 52px 28px 48px;     /* ← comfortable mobile card padding */
+      border-radius: 22px;
+    }
+
+    .ty-title { font-size: 24px; }
+
+    .ty-subtitle {
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .info-chips { margin-bottom: 32px; }
+
+    .success-ring {
+      width: 84px;
+      height: 84px;
+      margin-bottom: 28px;
+    }
+
+    .success-ring svg { width: 84px; height: 84px; }
+  }
+
+  @media (max-width: 380px) {
+    .ty-card { padding: 44px 20px 40px; }
+    .chip-icon { width: 34px; height: 34px; font-size: 15px; }
+  }
 `;
 
 const REDIRECT_DELAY = 10; // seconds
@@ -344,7 +405,6 @@ export default function ThankYouPage() {
     return () => clearTimeout(t);
   }, [countdown, router]);
 
-  // Inject styles
   useEffect(() => {
     const tag = document.createElement('style');
     tag.innerHTML = styles;
@@ -377,9 +437,9 @@ export default function ThankYouPage() {
       <div className="ty-card">
         {/* Animated success ring */}
         <div className="success-ring">
-          <svg viewBox="0 0 88 88">
-            <circle className="ring-bg" cx="44" cy="44" r="39" />
-            <circle className="ring-fill" cx="44" cy="44" r="39" transform="rotate(-90 44 44)" />
+          <svg viewBox="0 0 96 96">
+            <circle className="ring-bg" cx="48" cy="48" r="42.5" />
+            <circle className="ring-fill" cx="48" cy="48" r="42.5" transform="rotate(-90 48 48)" />
           </svg>
           <div className="ring-icon">✓</div>
         </div>

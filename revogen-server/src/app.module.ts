@@ -8,18 +8,22 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { TestsModule } from './tests/tests.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { QuestionBankModule } from './question-bank/question-bank.module';
-import { CodingTestsModule } from './coding-tests/coding-tests.module';
-import { CodingQuestionsModule } from './coding-question-bank/coding-questions.module';
-import { CodingSubmissionsModule } from './coding-submissions/coding-submissions.module';
 import { Judge0Module } from './judge0/judge0.module';
-import { CodingAssignmentsModule } from './coding-assignments/coding-assignments.module';
 
+import { CodingQuestionBankModule } from './coding-question-bank/coding-question-bank.module';
+
+import { CodingTestsModule } from './coding-tests/coding-tests.module';
+
+import { CodingAttemptsModule } from './coding-attempts/coding-attempts.module';
+import { CodingSubmissionsModule }
+from './coding-submissions/coding-submissions.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       
     }),
+    
 
     AuthModule,
     UsersModule,
@@ -27,12 +31,15 @@ import { CodingAssignmentsModule } from './coding-assignments/coding-assignments
     AnalysisModule,
     TestsModule,
     DashboardModule,
-    QuestionBankModule,
+QuestionBankModule ,
+    Judge0Module,
+
+    CodingQuestionBankModule,
+
     CodingTestsModule,
-     CodingQuestionsModule,
-     CodingSubmissionsModule,
-     Judge0Module,
-     CodingAssignmentsModule,
+
+    CodingAttemptsModule,
+    CodingSubmissionsModule,
   ],
 })
 export class AppModule {}

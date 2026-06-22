@@ -1,11 +1,9 @@
 export class CreateSubmitCodeDto {
-  codingTestId!: string;
+  attemptId: string;
 
-  codingQuestionId!: string;
+  questionId: string;
 
-  attemptId!: string;
+  language: string;
 
-  language!: string;
-
-  sourceCode!: string;
+  sourceCode: string;
 }

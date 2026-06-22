@@ -3,29 +3,26 @@ export class CreateCodingQuestionDto {
 
   slug!: string;
 
-  description!: string;
-
-  constraints!: string;
-
-  inputFormat!: string;
-
-  outputFormat!: string;
+  category!: string;
 
   difficulty!: string;
 
-  category!: string;
+  description!: string;
+
+  inputFormat?: string;
+
+  outputFormat?: string;
+
+  constraints?: string;
+
+  examples?: any;
 
   starterCode?: any;
-
-  solutionCode?: string;
-
-  timeLimit?: number;
-
-  memoryLimit?: number;
 
   testCases?: {
     input: string;
     expectedOutput: string;
-    isHidden: boolean;
+    explanation?: string;
+    isHidden?: boolean;
   }[];
 }
