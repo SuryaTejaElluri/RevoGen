@@ -85,16 +85,42 @@ export default function TestsPage() {
   };
 
   const handleDeleteCoding = async (id: string) => {
-    if (!confirm('Delete this coding assessment?')) return;
+    if (!confirm('Delete this coding assessment? This cannot be undone.')) return;
     try {
       const token = localStorage.getItem('access_token');
-      await fetch(`http://localhost:3000/coding-tests/${id}`, {
+      const res = await fetch(`http://localhost:3000/coding-tests/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to delete coding assessment.');
+        return;
+      }
       loadAll();
     } catch (error) {
       console.error(error);
+      alert('Failed to delete. Please try again.');
+    }
+  };
+
+  const handleDeleteMcq = async (id: string) => {
+    if (!confirm('Delete this MCQ assessment? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`http://localhost:3000/tests/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Failed to delete MCQ assessment.');
+        return;
+      }
+      loadAll();
+    } catch (error) {
+      console.error(error);
+      alert('Failed to delete. Please try again.');
     }
   };
 
@@ -743,6 +769,9 @@ export default function TestsPage() {
                           <Link href={`/admin/tests/${test.id}/questions`} className="action-btn">❓ Manage questions</Link>
                           <Link href={`/admin/tests/${test.id}/results`} className="action-btn success-btn">📊 View results</Link>
                           <Link href={`/admin/tests/${test.id}/invite`} className="action-btn warning-btn">✉️ Assign test</Link>
+                          <button className="action-btn danger-btn" onClick={() => handleDeleteMcq(test.id)}>
+                            🗑 Delete
+                          </button>
                         </>
                       )}
 

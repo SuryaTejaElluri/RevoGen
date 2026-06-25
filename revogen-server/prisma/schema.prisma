@@ -292,6 +292,14 @@ enum CodingSecurityLevel {
   PRO
 }
 
+enum OutputValidator {
+  EXACT
+  IGNORE_ORDER
+  SET_COMPARE
+  FLOAT_COMPARE
+  CUSTOM
+}
+
 model CodingTest {
   id String @id @default(uuid())
 
@@ -344,6 +352,10 @@ model CodingQuestionBank {
   examples Json?
 
   starterCodes Json?
+
+  outputValidator OutputValidator @default(EXACT)
+
+  floatPrecision Int @default(6)
 
   questions CodingTestQuestion[]
 

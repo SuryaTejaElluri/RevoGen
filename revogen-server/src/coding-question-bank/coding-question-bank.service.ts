@@ -12,21 +12,25 @@ export class CodingQuestionBankService {
   async create(
     dto: CreateCodingQuestionDto,
   ) {
+     console.log("DTttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttO:", dto);
     const question =
-      await this.prisma.codingQuestionBank.create({
-        data: {
-          title: dto.title,
-          slug: dto.slug,
-          category: dto.category,
-          difficulty: dto.difficulty as any,
-          description: dto.description,
-          inputFormat: dto.inputFormat,
-          outputFormat: dto.outputFormat,
-          constraints: dto.constraints,
-          examples: dto.examples,
-          starterCodes: dto.starterCode,
-        },
-      });
+  await this.prisma.codingQuestionBank.create({
+    data: {
+      title: dto.title,
+      slug: dto.slug,
+      category: dto.category,
+      difficulty: dto.difficulty as any,
+      description: dto.description,
+      inputFormat: dto.inputFormat,
+      outputFormat: dto.outputFormat,
+      constraints: dto.constraints,
+      examples: dto.examples,
+      starterCodes: dto.starterCode,
+
+      outputValidator: dto.outputValidator as any,
+      floatPrecision: dto.floatPrecision ?? 6,
+    },
+  });
 
     if (
       dto.testCases &&

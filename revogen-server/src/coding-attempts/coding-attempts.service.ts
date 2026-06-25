@@ -282,13 +282,13 @@ async finalSubmit(
   const completedQuestions =
     latestPerQuestion.size;
 
+  // percentage = average score across all questions (not just completed ones)
+  // e.g. 3 questions, scores [100, 50, 0] → totalScore=150, percentage=50%
+  const maxPossibleScore = attempt.totalQuestions * 100;
   const percentage =
-    attempt.totalQuestions === 0
+    maxPossibleScore === 0
       ? 0
-      : (
-          completedQuestions /
-          attempt.totalQuestions
-        ) * 100;
+      : (totalScore / maxPossibleScore) * 100;
 
   await this.prisma.codingAttempt.update({
     where: {
@@ -416,6 +416,7 @@ async getAttemptReport(
     difficulty: sub.question.difficulty,
     category: sub.question.category,
     language: sub.language,
+    sourceCode: sub.sourceCode ?? null,
     status: sub.status,
     score: sub.score,
     passedCases: sub.passedCases,
@@ -477,8 +478,9 @@ async proFinalSubmit(
   let totalScore = 0;
   latestPerQuestion.forEach((s) => { totalScore += s.score; });
   const completedQuestions = latestPerQuestion.size;
-  const percentage = attempt.totalQuestions === 0 ? 0
-    : (completedQuestions / attempt.totalQuestions) * 100;
+  // Use score-based percentage so partial submissions count proportionally
+  const maxPossible = attempt.totalQuestions * 100;
+  const percentage = maxPossible === 0 ? 0 : (totalScore / maxPossible) * 100;
 
   // Log final proctoring events if provided
   if (proctoringData) {
@@ -559,6 +561,7 @@ async getProAttemptReport(
     difficulty: sub.question.difficulty,
     category: sub.question.category,
     language: sub.language,
+    sourceCode: sub.sourceCode ?? null,
     status: sub.status,
     score: sub.score,
     passedCases: sub.passedCases,

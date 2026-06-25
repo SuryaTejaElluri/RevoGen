@@ -407,6 +407,14 @@ export class TestsService {
     };
   }
 
+  // ─── Delete Test (admin-scoped) ──────────────────────────────────────────────
+
+  async deleteTest(testId: string, adminId: string) {
+    await this.validateTestOwnership(testId, adminId);
+    await this.prisma.test.delete({ where: { id: testId } });
+    return { success: true };
+  }
+
   // ─── Practice tests (public) ──────────────────────────────────────────────────
 
   async getPracticeTests() {

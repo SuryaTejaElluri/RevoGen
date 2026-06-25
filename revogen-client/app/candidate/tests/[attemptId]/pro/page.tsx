@@ -185,21 +185,26 @@ export default function ProAssessmentPage() {
   const [showFinalSubmitModal, setShowFinalSubmitModal] = useState(false);
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState<number | null>(null);
   const [isFinalSubmitting, setIsFinalSubmitting] = useState(false);
+  const [screenShareEnabled, setScreenShareEnabled] = useState(false);
   const [toasts, setToasts] = useState<
     { id: number; message: string; type: ToastType }[]
   >([]);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null); // hidden — holds screen capture feed
   const faceDetectorRef = useRef<any>(null);
   const faceDetectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const micIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const noFaceTimerRef = useRef<number>(0);
+  const lastFaceNotCenteredAtRef = useRef<number>(0); // debounce for FACE_NOT_CENTERED screenshots
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const isAutoSubmittingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const warningsRef = useRef(0);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const multipleFacesTimerRef = useRef<number>(0); // consecutive ms with >1 face
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -233,21 +238,227 @@ export default function ProAssessmentPage() {
     [attemptId]
   );
 
-  // ─── Events that warrant a screenshot capture (defined outside component) ──
   // ─── Screenshot capture + upload ─────────────────────────────────────────
+  // Captures the full screen (via screenVideoRef) and overlays the webcam face
+  // (from videoRef) as a small PiP in the bottom-right corner.
+  // grabFrameFromSource: pulls one decoded bitmap out of either a MediaStream
+  // (preferred — via ImageCapture.grabFrame / track + ImageCapture, which reads
+  // straight off the MediaStreamTrack and does NOT depend on any <video> element
+  // being mounted, visible, or sized) or, as a fallback, an actual <video>
+  // element that is confirmed to be playing.
+  //
+  // This replaces the old approach of drawing from screenVideoRef directly.
+  // That approach broke whenever the <video> was display:none/zero-size
+  // (browser stops decoding into it) AND, after switching it to an off-screen
+  // absolutely-positioned element, was still unreliable across browsers because
+  // "off-screen but technically in the DOM" rendering/decoding behavior differs
+  // by engine. Reading frames directly off the track sidesteps all of that.
+  const grabFrameFromStream = async (
+    stream: MediaStream | null,
+    retries = 2
+  ): Promise<ImageBitmap | null> => {
+    if (!stream) return null;
+    const track = stream.getVideoTracks()[0];
+    if (!track || track.readyState !== "live") return null;
+    // @ts-ignore — ImageCapture is not yet in standard TS DOM lib typings
+    const ImageCaptureCtor = (window as any).ImageCapture;
+    if (!ImageCaptureCtor) return null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const capture = new ImageCaptureCtor(track);
+        const bitmap: ImageBitmap = await capture.grabFrame();
+        // A frame with zero area means the OS compositor hadn't delivered a
+        // real frame yet — this happens right around tab-switch/focus-change
+        // moments. Treat it as a failure and retry rather than uploading a
+        // blank screenshot.
+        if (bitmap.width === 0 || bitmap.height === 0) {
+          bitmap.close?.();
+          throw new Error("grabFrame returned an empty (0x0) frame");
+        }
+        return bitmap;
+      } catch (err) {
+        if (attempt === retries) {
+          console.warn("[proctoring] grabFrame failed after retries", err);
+          return null;
+        }
+        // Short backoff — gives the compositor/OS time to deliver a real
+        // frame after a visibility/focus transition. ~150ms, ~300ms.
+        await new Promise((r) => setTimeout(r, 150 * (attempt + 1)));
+      }
+    }
+    return null;
+  };
+
   const captureAndUploadScreenshot = useCallback(
     async (eventType: string, details: Record<string, any> = {}) => {
-      if (!videoRef.current || videoRef.current.readyState < 2) return;
       try {
+        // 1. Try to grab real frames directly from the MediaStream tracks —
+        //    this is independent of any <video> element's visibility/layout.
+        const [screenBitmap, camBitmap] = await Promise.all([
+          grabFrameFromStream(screenStreamRef.current),
+          grabFrameFromStream(cameraStream),
+        ]);
+
+        // 2. Fallback to the <video> elements if ImageCapture isn't supported
+        //    in this browser (e.g. older Firefox/Safari) or grabFrame failed.
+        const screenVid = screenVideoRef.current;
+        const camVid = videoRef.current;
+        const screenVidReady =
+          !!screenVid &&
+          screenVid.readyState >= 2 &&
+          screenVid.videoWidth > 0 &&
+          screenVid.videoHeight > 0;
+        const camVidReady =
+          !!camVid &&
+          camVid.readyState >= 2 &&
+          camVid.videoWidth > 0 &&
+          camVid.videoHeight > 0;
+
+        const haveScreen = !!screenBitmap || screenVidReady;
+        const haveCam = !!camBitmap || camVidReady;
+
+        if (!haveScreen && !haveCam) {
+          console.warn(
+            "[proctoring] captureAndUploadScreenshot: no source available",
+            {
+              hasScreenStream: !!screenStreamRef.current,
+              hasCamStream: !!cameraStream,
+              screenBitmap: !!screenBitmap,
+              camBitmap: !!camBitmap,
+              screenVidReady,
+              camVidReady,
+            }
+          );
+          return;
+        }
+
+        // Resolve a single drawable source + its natural dimensions for screen
+        // and camera, preferring the bitmap (grabFrame) over the <video> element.
+        const screenSrc: ImageBitmap | HTMLVideoElement | null = screenBitmap
+          ? screenBitmap
+          : screenVidReady
+          ? screenVid!
+          : null;
+        const camSrc: ImageBitmap | HTMLVideoElement | null = camBitmap
+          ? camBitmap
+          : camVidReady
+          ? camVid!
+          : null;
+
+        const dims = (src: ImageBitmap | HTMLVideoElement) =>
+          src instanceof HTMLVideoElement
+            ? { w: src.videoWidth, h: src.videoHeight }
+            : { w: src.width, h: src.height };
+
+        const baseSrc = screenSrc ?? camSrc!; // we already know at least one exists
+        const baseDims = dims(baseSrc);
+
         const canvas = document.createElement("canvas");
-        canvas.width = videoRef.current.videoWidth || 640;
-        canvas.height = videoRef.current.videoHeight || 480;
+        canvas.width = baseDims.w || 1280;
+        canvas.height = baseDims.h || 720;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const imageDataUrl = canvas.toDataURL("image/jpeg", 0.6);
-        // This endpoint both logs the security event AND stores the screenshot URL
-        // Do NOT also call logSecurityEvent — that would create a duplicate record
+
+        // Draw full screen (or webcam fallback) as background
+        ctx.drawImage(baseSrc as any, 0, 0, canvas.width, canvas.height);
+
+        // Overlay webcam feed as PiP in bottom-right corner (if screen is base
+        // and we also have a camera source)
+        if (baseSrc === screenSrc && camSrc) {
+          const camDims = dims(camSrc);
+          const pipW = Math.round(canvas.width * 0.22);
+          const pipH = Math.round(pipW * (camDims.h / Math.max(camDims.w, 1)));
+          const pipX = canvas.width - pipW - 16;
+          const pipY = canvas.height - pipH - 16;
+          // Draw a border around the PiP
+          ctx.fillStyle = "rgba(0,0,0,0.6)";
+          ctx.fillRect(pipX - 3, pipY - 3, pipW + 6, pipH + 6);
+          ctx.drawImage(camSrc as any, pipX, pipY, pipW, pipH);
+          // Label
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold ${Math.round(canvas.width * 0.012)}px sans-serif`;
+          ctx.fillText("Webcam", pipX + 6, pipY + Math.round(canvas.width * 0.016));
+        }
+
+        // Add event type watermark at top-left
+        ctx.fillStyle = "rgba(239,68,68,0.85)";
+        const labelH = Math.round(canvas.height * 0.04);
+        ctx.fillRect(0, 0, canvas.width, labelH);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.round(labelH * 0.6)}px sans-serif`;
+        ctx.fillText(
+          `⚠ ${eventType.replace(/_/g, " ")}  •  ${new Date().toLocaleTimeString()}`,
+          12,
+          Math.round(labelH * 0.75)
+        );
+
+        // Release bitmaps now that they're drawn (frees memory promptly)
+        screenBitmap?.close?.();
+        camBitmap?.close?.();
+
+        // ── Downscale + adaptively compress to avoid 413 Payload Too Large ──
+        // A raw 1920x1080+ screen capture as JPEG q0.7 can easily be 300-800KB,
+        // and base64-encoding it in JSON adds ~33% on top of that — backends
+        // with a default body-size limit (often 1MB or even 100KB on some
+        // frameworks) reject it outright. We cap the longest side and walk the
+        // quality down until the encoded payload fits a safe budget.
+        const MAX_DIMENSION = 1280; // longest side, px — plenty for review purposes
+        const MAX_PAYLOAD_BYTES = 350_000; // ~350KB raw → ~470KB after base64+JSON
+
+        let outCanvas = canvas;
+        if (canvas.width > MAX_DIMENSION || canvas.height > MAX_DIMENSION) {
+          const scale = MAX_DIMENSION / Math.max(canvas.width, canvas.height);
+          const small = document.createElement("canvas");
+          small.width = Math.round(canvas.width * scale);
+          small.height = Math.round(canvas.height * scale);
+          const sctx = small.getContext("2d");
+          if (sctx) {
+            sctx.drawImage(canvas, 0, 0, small.width, small.height);
+            outCanvas = small;
+          }
+        }
+
+        let quality = 0.7;
+        let imageDataUrl = outCanvas.toDataURL("image/jpeg", quality);
+        // Walk quality down (and as a last resort shrink dimensions further)
+        // until we're under the payload budget, capped at a few attempts so a
+        // pathological case can't loop forever.
+        for (let attempt = 0; attempt < 5 && imageDataUrl.length > MAX_PAYLOAD_BYTES; attempt++) {
+          if (quality > 0.35) {
+            quality -= 0.15;
+            imageDataUrl = outCanvas.toDataURL("image/jpeg", quality);
+          } else {
+            // Quality is already low — shrink dimensions instead.
+            const shrink = document.createElement("canvas");
+            shrink.width = Math.round(outCanvas.width * 0.75);
+            shrink.height = Math.round(outCanvas.height * 0.75);
+            const shctx = shrink.getContext("2d");
+            if (!shctx) break;
+            shctx.drawImage(outCanvas, 0, 0, shrink.width, shrink.height);
+            outCanvas = shrink;
+            imageDataUrl = outCanvas.toDataURL("image/jpeg", quality);
+          }
+        }
+
+        if (imageDataUrl.length > MAX_PAYLOAD_BYTES) {
+          console.warn(
+            "[proctoring] screenshot still large after compression — backend may still reject with 413",
+            { finalBytes: imageDataUrl.length, quality, w: outCanvas.width, h: outCanvas.height }
+          );
+        }
+
+        console.log("[proctoring] screenshot captured", {
+          eventType,
+          width: outCanvas.width,
+          height: outCanvas.height,
+          quality,
+          usedScreen: !!screenSrc,
+          usedCam: !!camSrc,
+          bytes: imageDataUrl.length,
+        });
+
+        // Fire and forget — never block the test
         fetch(`${API_BASE}/coding-attempts/${attemptId}/security-screenshot`, {
           method: "POST",
           headers: {
@@ -259,12 +470,24 @@ export default function ProAssessmentPage() {
             imageDataUrl,
             details: { ...details, timestamp: new Date().toISOString() },
           }),
-        }).catch(() => { /* silent — never block the test */ });
-      } catch {
-        /* silent — never block the test */
+        })
+          .then((res) => {
+            if (!res.ok) {
+              console.error(
+                "[proctoring] security-screenshot upload failed",
+                res.status,
+                res.statusText
+              );
+            }
+          })
+          .catch((err) => {
+            console.error("[proctoring] security-screenshot upload error", err);
+          });
+      } catch (err) {
+        console.error("[proctoring] captureAndUploadScreenshot threw", err);
       }
     },
-    [attemptId]
+    [attemptId, cameraStream]
   );
 
   // logEventWithScreenshot: for HIGH-severity events → screenshot + log in one call
@@ -274,7 +497,28 @@ export default function ProAssessmentPage() {
       // captureAndUploadScreenshot calls the /security-screenshot endpoint which
       // both uploads the image AND creates the CodingSecurityEvent record.
       // We do NOT call logSecurityEvent here — that would create a duplicate event.
-      captureAndUploadScreenshot(eventType, details);
+
+      if (eventType === "TAB_SWITCH") {
+        // Wait until candidate returns to the tab so we capture their screen
+        const waitForReturn = () => {
+          if (!document.hidden) {
+            document.removeEventListener("visibilitychange", waitForReturn);
+            captureAndUploadScreenshot(eventType, details);
+          }
+        };
+        document.addEventListener("visibilitychange", waitForReturn);
+        // Safety fallback: capture after 10s even if they never return
+        setTimeout(() => {
+          document.removeEventListener("visibilitychange", waitForReturn);
+          captureAndUploadScreenshot(eventType, details);
+        }, 10000);
+      } else if (eventType === "MULTIPLE_FACES") {
+        // Multiple faces — capture immediately, no delay
+        captureAndUploadScreenshot(eventType, details);
+      } else {
+        // All other events — wait 2s for screen to settle before capturing
+        setTimeout(() => captureAndUploadScreenshot(eventType, details), 2000);
+      }
     },
     [captureAndUploadScreenshot]
   );
@@ -300,6 +544,7 @@ export default function ProAssessmentPage() {
       if (!res.ok) throw new Error(`Submit failed (${res.status})`);
       // Release media + fullscreen before navigating away.
       cameraStream?.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close().catch(() => {});
       if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
       router.push("/tests/thank-you");
@@ -456,6 +701,16 @@ export default function ProAssessmentPage() {
     }
   }, [cameraStream, securityReady]);
 
+  // 3c. Re-attach screen stream to screenVideoRef when it remounts after securityReady
+  useEffect(() => {
+    const sv = screenVideoRef.current;
+    const stream = screenStreamRef.current;
+    if (sv && stream && sv.srcObject !== stream) {
+      sv.srcObject = stream;
+      sv.play().catch(() => {});
+    }
+  }, [screenShareEnabled, securityReady]);
+
   // 4. Face detection + mic loop
   useEffect(() => {
     if (!securityReady) return;
@@ -469,8 +724,13 @@ export default function ProAssessmentPage() {
             performance.now()
           );
           const count: number = res.detections.length;
-          setFaceCount(count);
-          if (count === 0) {
+          // Only count high-confidence detections as real faces (≥0.75 score).
+          // This prevents bending-down reflections/shadows from triggering false positives.
+          const realFaces = res.detections.filter(
+            (d: any) => (d.categories?.[0]?.score ?? d.score ?? 1) >= 0.75
+          ).length;
+          setFaceCount(realFaces);
+          if (realFaces === 0) {
             noFaceTimerRef.current += 500;
             if (noFaceTimerRef.current >= 3000) {
               noFaceTimerRef.current = 0;
@@ -481,26 +741,35 @@ export default function ProAssessmentPage() {
               logEventWithScreenshot("FACE_MISSING", { duration_ms: 3000 });
               addToast("Face not detected!", "error");
             }
-          } else if (count > 1) {
+          } else if (realFaces > 1) {
+            // Multiple real faces — trigger immediately, no delay needed
             noFaceTimerRef.current = 0;
+            multipleFacesTimerRef.current = 0;
             setProctorStats((p) => ({
               ...p,
               multipleFacesCount: p.multipleFacesCount + 1,
             }));
-            logEventWithScreenshot("MULTIPLE_FACES", { count });
+            logEventWithScreenshot("MULTIPLE_FACES", { count: realFaces });
             addWarning("Multiple faces detected in camera.");
           } else {
             noFaceTimerRef.current = 0;
+            multipleFacesTimerRef.current = 0;
             const box = res.detections[0]?.boundingBox;
             if (box && videoRef.current && videoRef.current.videoWidth) {
               const cx =
                 (box.originX + box.width / 2) / videoRef.current.videoWidth;
               if (cx < 0.2 || cx > 0.8) {
-                setProctorStats((p) => ({
-                  ...p,
-                  faceNotCenteredCount: p.faceNotCenteredCount + 1,
-                }));
-                logSecurityEvent("FACE_NOT_CENTERED", { x: cx });
+                const now = Date.now();
+                // Debounce: only screenshot once every 4s while face stays
+                // off-center, otherwise this fires (and uploads) every 500ms.
+                if (now - lastFaceNotCenteredAtRef.current > 4000) {
+                  lastFaceNotCenteredAtRef.current = now;
+                  setProctorStats((p) => ({
+                    ...p,
+                    faceNotCenteredCount: p.faceNotCenteredCount + 1,
+                  }));
+                  logEventWithScreenshot("FACE_NOT_CENTERED", { x: cx });
+                }
               }
             }
           }
@@ -542,7 +811,7 @@ export default function ProAssessmentPage() {
       }
     };
     const onBlur = () => {
-      logSecurityEvent("WINDOW_BLUR");
+      logEventWithScreenshot("WINDOW_BLUR");
       addWarning("Window focus lost.");
     };
     const onCtx = (e: MouseEvent) => {
@@ -605,6 +874,7 @@ export default function ProAssessmentPage() {
   useEffect(() => {
     return () => {
       cameraStream?.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close().catch(() => {});
       clearInterval(faceDetectionIntervalRef.current!);
       clearInterval(micIntervalRef.current!);
@@ -658,7 +928,36 @@ export default function ProAssessmentPage() {
       // where the browser denies permission.
     }
 
-    // Step 2: face detector (best-effort; failure here shouldn't block entry).
+    // Step 2: Screen share — ask candidate to share their entire screen.
+    try {
+      const screenStream = await (navigator.mediaDevices as any).getDisplayMedia({
+        video: { displaySurface: "monitor" }, // prefer full screen over window/tab
+        audio: false,
+      });
+      screenStreamRef.current = screenStream;
+      setScreenShareEnabled(true);
+      // Attach directly here — screenVideoRef is already mounted at this point
+      // (the page has loaded before enterAssessment is called)
+      if (screenVideoRef.current) {
+        screenVideoRef.current.srcObject = screenStream;
+        await screenVideoRef.current.play().catch(() => {});
+      }
+      // If candidate stops sharing screen themselves, log it
+      screenStream.getVideoTracks()[0]?.addEventListener("ended", () => {
+        setScreenShareEnabled(false);
+        logSecurityEvent("SCREEN_SHARE_STOPPED");
+        addToast("Screen sharing stopped. This has been recorded.", "error");
+      });
+      addToast("Screen sharing active.", "success");
+    } catch {
+      // Screen share denied or cancelled — block entry, this is required for PRO
+      logSecurityEvent("SCREEN_SHARE_DENIED");
+      addToast("Screen sharing is required for PRO assessments. Please allow screen share and try again.", "error");
+      setIsInitializingProctoring(false);
+      return; // ← Block entry until screen is shared
+    }
+
+    // Step 3: face detector (best-effort; failure here shouldn't block entry).
     try {
       const vision = await FilesetResolver.forVisionTasks(
         "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -676,7 +975,7 @@ export default function ProAssessmentPage() {
       addToast("Face detection could not start; basic proctoring active.", "warning");
     }
 
-    // Step 3: fullscreen (best-effort).
+    // Step 4: fullscreen (best-effort).
     try {
       await document.documentElement.requestFullscreen();
     } catch {
@@ -809,6 +1108,8 @@ export default function ProAssessmentPage() {
       const st =
         data.status === "PASSED"
           ? "PASSED"
+          : data.status === "PARTIAL"
+          ? "PARTIAL"
           : data.passedCases > 0
           ? "PARTIAL"
           : "FAILED";
@@ -944,6 +1245,7 @@ export default function ProAssessmentPage() {
             {[
               "📷 Webcam access required",
               "🎙️ Microphone access required",
+              "🖥️ Screen sharing required (full screen)",
               "⛶ Fullscreen mode will be enabled",
               "🚫 Tab switching is not allowed",
             ].map((r) => (
@@ -1082,6 +1384,44 @@ export default function ProAssessmentPage() {
 
         {/* Right */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {/* Fallback-only screen capture video. The PRIMARY capture path is now
+              ImageCapture.grabFrame() on the raw MediaStreamTrack (see
+              captureAndUploadScreenshot / grabFrameFromStream above), which does
+              NOT depend on this element at all — so the old display:none decode
+              issue can't recur for browsers that support ImageCapture (all
+              current Chrome/Edge). This element only matters as a fallback for
+              browsers without ImageCapture (older Firefox/Safari). It's kept
+              off-screen with a real (1x1) rendered size rather than display:none,
+              since some engines stop decoding into display:none video elements. */}
+          <video
+            ref={screenVideoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              position: "fixed",
+              top: -9999,
+              left: -9999,
+              width: 1,
+              height: 1,
+              opacity: 0,
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Screen share status indicator */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "3px 9px", borderRadius: 6,
+            background: screenShareEnabled ? "rgba(63,185,80,0.12)" : "rgba(248,81,73,0.12)",
+            border: `1px solid ${screenShareEnabled ? "#3fb95040" : "#f8514940"}`,
+            fontSize: 11, fontWeight: 600,
+            color: screenShareEnabled ? "#3fb950" : "#f85149",
+          }}>
+            <span style={{ fontSize: 14 }}>🖥️</span>
+            {screenShareEnabled ? "Screen Shared" : "No Screen Share"}
+          </div>
+
           {/* Webcam preview — THE single video element used everywhere */}
           <div style={{ position: "relative" }}>
             <video

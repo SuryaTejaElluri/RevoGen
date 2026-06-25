@@ -98,6 +98,17 @@ export class CodingTestsService {
     PRO: 3,
   };
 
+  async deleteTest(id: string, userId: string) {
+    const test = await this.prisma.codingTest.findFirst({
+      where: { id, createdById: userId },
+    });
+    if (!test) {
+      throw new NotFoundException('Coding test not found or access denied');
+    }
+    await this.prisma.codingTest.delete({ where: { id } });
+    return { success: true };
+  }
+
   async inviteCandidate(codingTestId: string, dto: InviteCandidateDto, userId: string) {
     const test = await this.prisma.codingTest.findFirst({
       where: { id: codingTestId, createdById: userId },
@@ -161,24 +172,43 @@ export class CodingTestsService {
 
   async getInvitations(codingTestId: string, userId: string) {
     const test = await this.prisma.codingTest.findFirst({
-      where: {
-        id: codingTestId,
-        createdById: userId,
-      },
+      where: { id: codingTestId, createdById: userId },
     });
 
     if (!test) {
       throw new NotFoundException('Coding test not found');
     }
 
-    return this.prisma.codingInvitation.findMany({
-      where: {
-        codingTestId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
+    const invitations = await this.prisma.codingInvitation.findMany({
+      where: { codingTestId },
+      orderBy: { createdAt: 'desc' },
     });
+
+    // Enrich every invitation with real attempt status.
+    // Look up by userId first (most reliable); fall back to candidateEmail
+    // so we catch attempts made before the user registered.
+    const enriched = await Promise.all(
+      invitations.map(async (inv) => {
+        const attempt = await this.prisma.codingAttempt.findFirst({
+          where: {
+            codingTestId,
+            ...(inv.userId
+              ? { userId: inv.userId }
+              : { candidateEmail: inv.candidateEmail }),
+          },
+          select: { id: true, status: true, percentage: true, submittedAt: true },
+        });
+        return {
+          ...inv,
+          attemptStatus: attempt?.status ?? null,
+          attemptId: attempt?.id ?? null,
+          attemptPercentage: attempt?.percentage ?? null,
+          submittedAt: attempt?.submittedAt ?? null,
+        };
+      }),
+    );
+
+    return enriched;
   }
 
   async getAssignedTests(userId: string) {

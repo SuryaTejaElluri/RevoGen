@@ -604,7 +604,10 @@ export default function BasicAssessmentPage() {
       setSubmitResult(data);
 
       const status: QuestionState["status"] =
-        data.status === "PASSED" ? "PASSED" : data.passedCases > 0 ? "PARTIAL" : "FAILED";
+        data.status === "PASSED" ? "PASSED"
+        : data.status === "PARTIAL" ? "PARTIAL"
+        : data.passedCases > 0 ? "PARTIAL"
+        : "FAILED";
 
       setQuestionStates((prev) => ({
         ...prev,

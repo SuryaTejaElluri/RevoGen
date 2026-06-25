@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Delete,
   Param,
   Post,
   Request,
@@ -92,6 +93,13 @@ export class TestsController {
     @Request() req,
   ) {
     return this.testsService.inviteCandidates(id, body.emails, req.user.userId);
+  }
+
+  // ─── Admin: Delete Test ───────────────────────────────────────────────────────
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @Delete(':id')
+  deleteTest(@Param('id') id: string, @Request() req) {
+    return this.testsService.deleteTest(id, req.user.userId);
   }
 
   // ─── Admin: Get Single Attempt Report ─────────────────────────────────────────

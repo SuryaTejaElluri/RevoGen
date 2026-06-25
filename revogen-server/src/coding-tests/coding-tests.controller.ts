@@ -73,6 +73,12 @@ export class CodingTestsController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Delete(':id')
+  deleteTest(@Param('id') id: string, @Request() req) {
+    return this.codingTestsService.deleteTest(id, req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
     return this.codingTestsService.findOne(id, req.user.userId);

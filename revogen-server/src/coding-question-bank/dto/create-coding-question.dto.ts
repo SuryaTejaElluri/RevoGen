@@ -1,3 +1,5 @@
+import { OutputValidator } from '@prisma/client';
+
 export class CreateCodingQuestionDto {
   title!: string;
 
@@ -18,7 +20,9 @@ export class CreateCodingQuestionDto {
   examples?: any;
 
   starterCode?: any;
+  outputValidator: OutputValidator;
 
+floatPrecision?: number;
   testCases?: {
     input: string;
     expectedOutput: string;

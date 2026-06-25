@@ -43,6 +43,8 @@ export interface Invitation {
   createdAt: string;
   attemptStatus?: string;
   attemptId?: string | null;
+  attemptPercentage?: number | null;
+  submittedAt?: string | null;
 }
 
 export default function AssignPage() {
@@ -359,13 +361,25 @@ export default function AssignPage() {
                       </td>
                       <td>
                         {inv.attemptStatus ? (
-                          <span className={`badge ${
-                            inv.attemptStatus === 'COMPLETED' ? 'status-completed' :
-                            inv.attemptStatus === 'IN_PROGRESS' ? 'status-in-progress' : 'badge-gray'
-                          }`}>
-                            {inv.attemptStatus === 'COMPLETED' ? '✅ Completed' :
-                             inv.attemptStatus === 'IN_PROGRESS' ? '🔄 In Progress' : inv.attemptStatus}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                            <span className={`badge ${
+                              inv.attemptStatus === 'COMPLETED' ? 'status-completed' :
+                              inv.attemptStatus === 'IN_PROGRESS' ? 'status-in-progress' : 'badge-gray'
+                            }`}>
+                              {inv.attemptStatus === 'COMPLETED' ? '✅ Completed' :
+                               inv.attemptStatus === 'IN_PROGRESS' ? '🔄 In Progress' : inv.attemptStatus}
+                            </span>
+                            {inv.attemptStatus === 'COMPLETED' && inv.attemptPercentage !== null && inv.attemptPercentage !== undefined && (
+                              <span style={{ fontSize: '0.75rem', color: inv.attemptPercentage >= 70 ? '#34d399' : inv.attemptPercentage >= 40 ? '#fbbf24' : '#f87171', fontWeight: 700 }}>
+                                Score: {inv.attemptPercentage.toFixed(1)}%
+                              </span>
+                            )}
+                            {inv.submittedAt && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                {new Date(inv.submittedAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="badge badge-gray">Not Started</span>
                         )}

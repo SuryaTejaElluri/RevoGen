@@ -30,7 +30,7 @@ interface Result {
   securityEventCounts: SecurityEventCounts; questionResults: QuestionResult[];
   proSummary?: ProSummary;
 }
-interface SecurityEvent { id: string; eventType: string; details: any; timestamp: string; }
+interface SecurityEvent { id: string; eventType: string; details: any; timestamp: string; screenshotUrl?: string | null; }
 interface ProProctoring {
   cameraEnabled: boolean; micEnabled: boolean; faceMissingCount: number;
   multipleFacesCount: number; noiseWarningCount: number; gazeAwayCount: number;
@@ -46,8 +46,8 @@ interface AttemptReport {
   totalSecurityEvents: number; proProctoring?: ProProctoring;
   questionSummary: Array<{
     questionId: string; questionTitle: string; difficulty: string; category: string;
-    language: string; status: string; score: number; passedCases: number;
-    totalCases: number; submittedAt: string; submissionCount: number;
+    language: string; sourceCode?: string | null; status: string; score: number;
+    passedCases: number; totalCases: number; submittedAt: string; submissionCount: number;
   }>;
 }
 type SortKey = 'rank' | 'percentage' | 'totalScore' | 'riskScore' | 'submittedAt' | 'totalSecurityEvents';
@@ -332,6 +332,38 @@ function TimelineTab({ events, startedAt }: { events: SecurityEvent[]; startedAt
                   {Object.entries(ev.details).filter(([k]) => k !== 'timestamp' && k !== 'url').map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(' · ')}
                 </div>
               )}
+              {/* Screenshot thumbnail — PRO proctoring screen capture */}
+              {ev.screenshotUrl && (
+                <div style={{ marginTop: 8 }}>
+                  <img
+                    src={ev.screenshotUrl}
+                    alt={`Screenshot: ${ev.eventType}`}
+                    title="Click to view full size"
+                    onClick={() => window.open(ev.screenshotUrl!, '_blank')}
+                    style={{
+                      width: '100%',
+                      maxWidth: 480,
+                      height: 'auto',
+                      borderRadius: 8,
+                      border: `1px solid ${m.color}40`,
+                      cursor: 'pointer',
+                      display: 'block',
+                      transition: 'opacity 0.15s, transform 0.15s',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLImageElement).style.opacity = '0.85';
+                      (e.currentTarget as HTMLImageElement).style.transform = 'scale(1.01)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLImageElement).style.opacity = '1';
+                      (e.currentTarget as HTMLImageElement).style.transform = 'scale(1)';
+                    }}
+                  />
+                  <div style={{ fontSize: 10, color: '#475569', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span>🖥️</span> Screen capture · Click to view full size
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -374,6 +406,42 @@ function QuestionsTab({ questions }: { questions: AttemptReport['questionSummary
               </div>
               <span style={{ fontSize: 11, color: sc.color, fontWeight: 700 }}>{q.passedCases}/{q.totalCases} cases</span>
             </div>
+
+            {/* View submitted code */}
+            {q.sourceCode && (
+              <div style={{ marginTop: 10 }}>
+                <details>
+                  <summary style={{
+                    cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#6366f1',
+                    background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
+                    borderRadius: 6, padding: '5px 10px', listStyle: 'none', userSelect: 'none' as const,
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <span>{'</>'}</span> View Submitted Code ({q.language})
+                  </summary>
+                  <div style={{ position: 'relative' as const, marginTop: 6 }}>
+                    <div style={{
+                      position: 'absolute' as const, top: 8, right: 10,
+                      fontSize: 10, color: '#6366f1', fontFamily: 'monospace',
+                      fontWeight: 700, background: 'rgba(99,102,241,0.1)',
+                      padding: '2px 7px', borderRadius: 4, zIndex: 1,
+                    }}>
+                      {q.language}
+                    </div>
+                    <pre style={{
+                      background: '#0d1117', border: '1px solid #30363d',
+                      borderRadius: 8, padding: '14px 16px',
+                      fontSize: 12, fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                      color: '#e6edf3', lineHeight: 1.6,
+                      overflowX: 'auto' as const, whiteSpace: 'pre' as const,
+                      margin: 0, maxHeight: 360, overflowY: 'auto' as const,
+                    }}>
+                      {q.sourceCode}
+                    </pre>
+                  </div>
+                </details>
+              </div>
+            )}
           </div>
         );
       })}
