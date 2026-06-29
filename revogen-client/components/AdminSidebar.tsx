@@ -309,9 +309,10 @@ const css = `
 `;
 
 const NAV_LINKS = [
-  { href: '/admin',       label: 'Dashboard', icon: '⬛' },
-  { href: '/admin/tests', label: 'Tests',     icon: '📄' },
-  { href: '/admin/Create_Tests', label: 'Create Assessment',     icon: '🆕' },
+  { href: '/admin',              label: 'Dashboard',         icon: '⬛' },
+  { href: '/admin/tests',        label: 'Tests',             icon: '📄' },
+  { href: '/admin/Create_Tests', label: 'Create Assessment', icon: '🆕' },
+  { href: '/admin/credits',      label: 'Revo Credits',      icon: '🪙' },
 ];
 
 export default function AdminSidebar({

@@ -43,6 +43,7 @@ model User {
   name     String
   email    String  @unique
   password String?
+  phone    String?
   provider String  @default("credentials")
 
   role String @default("USER")
@@ -54,9 +55,11 @@ model User {
   resumes  Resume[]
   attempts Attempt[]
 
-codingInvitations CodingInvitation[]
+  codingInvitations CodingInvitation[]
+  codingAttempts    CodingAttempt[]
 
-codingAttempts CodingAttempt[]
+  adminCredits       AdminCredits?
+  creditTransactions CreditTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -300,6 +303,14 @@ enum OutputValidator {
   CUSTOM
 }
 
+enum CreditTransactionType {
+  PURCHASE
+  USAGE
+  BONUS
+  REFUND
+  ADMIN
+}
+
 model CodingTest {
   id String @id @default(uuid())
 
@@ -509,6 +520,55 @@ model CodingSecurityEvent {
   details Json?
 
   screenshotUrl String?
+
+  createdAt DateTime @default(now())
+}
+
+// ─── Revo Credits — Phase 1 ───────────────────────────────────────────────────
+
+/// One wallet per admin user. Balance defaults to 20 (welcome bonus).
+model AdminCredits {
+  id      String @id @default(uuid())
+
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  balance Int    @default(20)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Every credit movement (purchase, usage, bonus, refund, admin adjustment).
+model CreditTransaction {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type          CreditTransactionType
+  credits       Int                   // positive = credit added, negative = deducted
+  balanceAfter  Int                   // wallet balance after this transaction
+  description   String                // human-readable e.g. "PRO Coding Test Assignment"
+  referenceId   String?               // optional: codingTestId, packId, etc.
+  metadata      Json?                 // optional: { codingTestId, securityLevel, candidateCount, ... }
+
+  createdAt DateTime @default(now())
+}
+
+/// Purchasable credit packs shown in the billing page.
+model CreditPack {
+  id          String  @id @default(uuid())
+
+  name        String
+  credits     Int
+  bonusCredits Int    @default(0)
+  price       Float                   // in INR (paisa stored as float for flexibility)
+  description String?
+
+  isPopular    Boolean @default(false)
+  isActive     Boolean @default(true)
+  displayOrder Int     @default(0)
 
   createdAt DateTime @default(now())
 }

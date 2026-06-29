@@ -15,6 +15,8 @@ export class UsersService {
     name: string;
     email: string;
     password: string;
+    phone?: string;
+    role?: string;
   }) {
     return this.prisma.user.create({
       data,
@@ -112,74 +114,75 @@ async getCandidateProfile(id: string) {
 }
 
 async getLeaderboard() {
-  const users =
-    await this.prisma.user.findMany({
-      where: {
-        role: 'USER',
-      },
-
-      include: {
-        resumes: {
-          include: {
-            analysis: true,
-          },
-        },
-
-        attempts: true,
-      },
-    });
+  const users = await this.prisma.user.findMany({
+    where: { role: 'USER' },
+    include: { attempts: true },
+  });
 
   return users
     .map((user) => {
-      const resume =
-        user.resumes.find(
-          (r) => r.isActive,
-        ) || user.resumes[0];
-
-      const atsScore =
-        resume?.analysis
-          ?.atsScore ?? 0;
-
       const avgScore =
         user.attempts.length > 0
-          ? user.attempts.reduce(
-              (sum, a) =>
-                sum +
-                a.percentage,
-              0,
-            ) /
+          ? user.attempts.reduce((sum, a) => sum + a.percentage, 0) /
             user.attempts.length
           : 0;
-
-      const rankingScore =
-        avgScore * 0.7 +
-        atsScore * 0.3;
 
       return {
         id: user.id,
         name: user.name,
         email: user.email,
-
-        atsScore,
-
-        averageTestScore:
-          Number(
-            avgScore.toFixed(2),
-          ),
-
-        rankingScore:
-          Number(
-            rankingScore.toFixed(
-              2,
-            ),
-          ),
+        averageTestScore: Number(avgScore.toFixed(2)),
+        rankingScore: Number(avgScore.toFixed(2)),
       };
     })
-    .sort(
-      (a, b) =>
-        b.rankingScore -
-        a.rankingScore,
-    );
+    .sort((a, b) => b.rankingScore - a.rankingScore);
+}
+
+// Only candidates THIS admin has invited, ranked by average test score
+async getLeaderboardForAdmin(adminId: string) {
+  // Collect all emails invited by this admin across MCQ and Coding tests
+  const [mcqInvites, codingInvites] = await Promise.all([
+    this.prisma.testInvitation.findMany({
+      where: { test: { createdById: adminId } },
+      select: { email: true },
+    }),
+    this.prisma.codingInvitation.findMany({
+      where: { codingTest: { createdById: adminId } },
+      select: { candidateEmail: true, userId: true },
+    }),
+  ]);
+
+  const invitedEmails = new Set<string>([
+    ...mcqInvites.map(i => i.email),
+    ...codingInvites.map(i => i.candidateEmail),
+  ]);
+
+  if (invitedEmails.size === 0) return [];
+
+  const users = await this.prisma.user.findMany({
+    where: {
+      role: 'USER',
+      email: { in: Array.from(invitedEmails) },
+    },
+    include: { attempts: true },
+  });
+
+  return users
+    .map((user) => {
+      const avgScore =
+        user.attempts.length > 0
+          ? user.attempts.reduce((sum, a) => sum + a.percentage, 0) /
+            user.attempts.length
+          : 0;
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        averageTestScore: Number(avgScore.toFixed(2)),
+        rankingScore: Number(avgScore.toFixed(2)),
+      };
+    })
+    .sort((a, b) => b.rankingScore - a.rankingScore);
 }
 
 async updateRole(

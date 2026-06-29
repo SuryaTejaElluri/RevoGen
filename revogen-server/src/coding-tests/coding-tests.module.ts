@@ -7,10 +7,12 @@ import { CodingTestsController } from './coding-tests.controller';
 import { CodingTestsService } from './coding-tests.service';
 
 import { CodingAttemptsModule } from '../coding-attempts/coding-attempts.module';
+import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     CodingAttemptsModule,
+    CreditsModule,
   ],
 
   controllers: [

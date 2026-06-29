@@ -15,15 +15,14 @@ import { CodingQuestionBankModule } from './coding-question-bank/coding-question
 import { CodingTestsModule } from './coding-tests/coding-tests.module';
 
 import { CodingAttemptsModule } from './coding-attempts/coding-attempts.module';
-import { CodingSubmissionsModule }
-from './coding-submissions/coding-submissions.module';
+import { CodingSubmissionsModule } from './coding-submissions/coding-submissions.module';
+import { CreditsModule } from './credits/credits.module';
+import { MailModule } from './mail/mail.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      
     }),
-    
 
     AuthModule,
     UsersModule,
@@ -31,15 +30,16 @@ from './coding-submissions/coding-submissions.module';
     AnalysisModule,
     TestsModule,
     DashboardModule,
-QuestionBankModule ,
+    QuestionBankModule,
     Judge0Module,
 
     CodingQuestionBankModule,
-
     CodingTestsModule,
-
     CodingAttemptsModule,
     CodingSubmissionsModule,
+
+    CreditsModule,
+    MailModule
   ],
 })
 export class AppModule {}

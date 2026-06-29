@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
+
 // --- TypeScript Interfaces ---
 
 export interface QuestionStarterCodes {
@@ -71,23 +72,22 @@ export default function AssessmentViewPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-      
+
       const res = await fetch(`http://localhost:3000/coding-tests/${assessmentId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      
+
       if (!res.ok) {
         throw new Error('Failed to load assessment details');
       }
-      
+
       const data: Assessment = await res.json();
       setAssessment(data);
 
-      // Set all questions to be expanded by default
       if (data.questions) {
         const initialExpandedState: Record<string, boolean> = {};
         data.questions.forEach((q) => {
@@ -110,8 +110,7 @@ export default function AssessmentViewPage() {
     if (assessmentId) {
       fetchAssessment();
     }
-    
-    // Check local storage for theme preference
+
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('app_theme') as 'dark' | 'light';
       if (savedTheme) {
@@ -155,11 +154,7 @@ export default function AssessmentViewPage() {
   };
 
   // --- Derived State ---
-  const difficultyCounts = {
-    EASY: 0,
-    MEDIUM: 0,
-    HARD: 0
-  };
+  const difficultyCounts = { EASY: 0, MEDIUM: 0, HARD: 0 };
 
   if (assessment && assessment.questions) {
     assessment.questions.forEach(q => {
@@ -173,18 +168,18 @@ export default function AssessmentViewPage() {
   // --- Renderers ---
   if (loading) {
     return (
-      <div className={`theme-wrapper ${theme}`}>
-        <div className="layout-container">
-          <div className="main-content">
-            <div className="skeleton-box title-skeleton"></div>
-            <div className="stats-grid">
-              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="skeleton-box stat-card-skeleton"></div>)}
+      <div className={`rv-root ${theme}`}>
+        <div className="rv-shell">
+          <div className="rv-main">
+            <div className="sk sk-title" />
+            <div className="rv-stats">
+              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="sk sk-stat" />)}
             </div>
-            <div className="skeleton-box info-card-skeleton"></div>
-            <div className="skeleton-box list-skeleton"></div>
+            <div className="sk sk-info" />
+            <div className="sk sk-list" />
           </div>
-          <aside className="sidebar">
-            <div className="skeleton-box sidebar-skeleton"></div>
+          <aside className="rv-side">
+            <div className="sk sk-side" />
           </aside>
         </div>
         <style jsx global>{styles}</style>
@@ -194,13 +189,14 @@ export default function AssessmentViewPage() {
 
   if (error || !assessment) {
     return (
-      <div className={`theme-wrapper ${theme}`}>
-        <div className="error-screen">
-          <div className="glass-card error-card">
+      <div className={`rv-root ${theme}`}>
+        <div className="rv-error">
+          <div className="rv-error-card">
+            <div className="rv-error-icon">!</div>
             <h2>Something went wrong</h2>
             <p>{error || 'Assessment not found'}</p>
-            <button onClick={() => router.push('/admin/tests')} className="btn primary">
-              Back to Tests
+            <button onClick={() => router.push('/admin/tests')} className="btn btn-primary">
+              ← Back to Tests
             </button>
           </div>
         </div>
@@ -211,897 +207,733 @@ export default function AssessmentViewPage() {
 
   return (
     <>
-    <AdminNavbar/>
+      <AdminNavbar />
 
-    <div className={`theme-wrapper ${theme}`}>
-      <div className="layout-container">
-        <div className="main-content">
-          
-          {/* Header */}
-          <header className="page-header">
-            <div className="header-titles">
-              <h1>📄 Assessment Details</h1>
-              <p className="subtitle">Review coding assessment configuration, questions, and test cases.</p>
-            </div>
-            <div className="header-actions">
-              <button onClick={toggleTheme} className="btn secondary outline glass-btn theme-toggle">
-                {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
-              </button>
-              <button
-                onClick={() => router.push(`/admin/coding-tests/${assessmentId}/assign`)}
-                className="btn secondary outline glass-btn"
-              >
-                👥 Assign Candidates
-              </button>
-              <button
-                onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
-                className="btn secondary outline glass-btn"
-              >
-                📊 View Results
-              </button>
-              <button 
-                onClick={() => router.push('/admin/tests')} 
-                className="btn secondary outline glass-btn"
-              >
-                ← Back To Tests
-              </button>
-            </div>
-          </header>
+      <div className={`rv-root ${theme}`}>
+        <div className="rv-bg-blob blob-a" />
+        <div className="rv-bg-blob blob-b" />
 
-          {/* Top Statistics Cards */}
-          <section className="stats-grid">
-            <div className="glass-card stat-card">
-              <span className="stat-label">Assessment Title</span>
-              <span className="stat-value text-truncate" title={assessment.title}>{assessment.title}</span>
-            </div>
-            <div className="glass-card stat-card">
-              <span className="stat-label">Duration</span>
-              <span className="stat-value">{assessment.duration} Minutes</span>
-            </div>
-            <div className="glass-card stat-card">
-              <span className="stat-label">Security Level</span>
-              <span className="badge security-badge">{assessment.securityLevel}</span>
-            </div>
-            <div className="glass-card stat-card">
-              <span className="stat-label">Questions</span>
-              <span className="stat-value">{assessment.questions.length}</span>
-            </div>
-            <div className="glass-card stat-card">
-              <span className="stat-label">Status</span>
-              <span className={`badge ${assessment.isActive ? 'status-active' : 'status-inactive'}`}>
-                {assessment.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
-            <div className="glass-card stat-card">
-              <span className="stat-label">Created</span>
-              <span className="stat-value">{formatDate(assessment.createdAt)}</span>
-            </div>
-          </section>
+        <div className="rv-shell">
+          <div className="rv-main">
 
-          {/* Assessment Information Card */}
-          <section className="glass-card info-card">
-            <h2 className="section-title">Assessment Information</h2>
-            <div className="info-grid">
-              <div className="info-item">
-                <span className="info-label">Title</span>
-                <span className="info-text">{assessment.title}</span>
+            {/* Breadcrumb / Title */}
+            <header className="rv-header">
+              <div className="rv-crumb">
+                <button onClick={() => router.push('/admin/tests')} className="rv-crumb-link">Tests</button>
+                <span className="rv-crumb-sep">/</span>
+                <span className="rv-crumb-current">Details</span>
               </div>
-              <div className="info-item">
-                <span className="info-label">Description</span>
-                <span className="info-text">{assessment.description || 'No description provided.'}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Duration</span>
-                <span className="info-text">{assessment.duration} minutes</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Created Date</span>
-                <span className="info-text">{formatDate(assessment.createdAt)}</span>
-              </div>
-            </div>
-          </section>
 
-          {/* Questions Section */}
-          <section className="questions-section">
-            <h2 className="section-title">Assessment Questions</h2>
-            
-            {assessment.questions.length === 0 ? (
-              <div className="glass-card empty-state">
-                <p>No Questions Found</p>
-              </div>
-            ) : (
-              <div className="questions-list">
-                {assessment.questions
-                  .sort((a, b) => a.order - b.order)
-                  .map((q) => {
-                    const isExpanded = !!expandedQuestions[q.id];
-                    const qData = q.question;
-                    const languages = Object.keys(qData.starterCodes || {});
-                    const testCases = qData.testCases || [];
+              <div className="rv-header-row">
+                <div className="rv-header-titles">
+                  <div className="rv-title-line">
+                    <h1>{assessment.title}</h1>
+                    <span className={`chip ${assessment.isActive ? 'chip-success' : 'chip-muted'}`}>
+                      <span className="chip-dot" />
+                      {assessment.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <p className="rv-sub">
+                    Review assessment configuration, questions, and test cases.
+                  </p>
+                </div>
 
-                    return (
-                      <div key={q.id} className="glass-card question-card">
-                        <div className="question-header">
-                          <div className="question-meta">
-                            <span className="q-order">Question #{q.order}</span>
-                            <h3 className="q-title">{qData.title}</h3>
-                            <div className="q-tags">
-                              <span className={`badge diff-${(qData.difficulty || 'EASY').toLowerCase()}`}>
-                                Difficulty: {qData.difficulty}
-                              </span>
-                              <span className="badge tag-category">
-                                Category: {qData.category}
-                              </span>
+                <div className="rv-actions">
+                  <button onClick={toggleTheme} className="btn btn-ghost" aria-label="Toggle theme">
+                    {theme === 'dark' ? '☀' : '☾'}
+                  </button>
+                  <button
+                    onClick={() => router.push(`/admin/coding-tests/${assessmentId}/assign`)}
+                    className="btn btn-outline"
+                  >
+                    Assign Candidates
+                  </button>
+                  <button
+                    onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                    className="btn btn-outline"
+                  >
+                    View Results
+                  </button>
+                  <button
+                    onClick={() => router.push('/admin/tests')}
+                    className="btn btn-primary"
+                  >
+                    ← Back
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            {/* Top Stats */}
+            <section className="rv-stats">
+              <div className="stat">
+                <span className="stat-label">Duration</span>
+                <span className="stat-value">{assessment.duration}<span className="stat-unit"> min</span></span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Questions</span>
+                <span className="stat-value">{assessment.questions.length}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Security Level</span>
+                <span className="chip chip-info">{assessment.securityLevel}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Easy</span>
+                <span className="stat-value text-easy">{difficultyCounts.EASY}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Medium</span>
+                <span className="stat-value text-medium">{difficultyCounts.MEDIUM}</span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Hard</span>
+                <span className="stat-value text-hard">{difficultyCounts.HARD}</span>
+              </div>
+            </section>
+
+            {/* Assessment Information */}
+            <section className="card">
+              <div className="card-head">
+                <h2 className="card-title">Assessment Information</h2>
+                <span className="card-sub">Created {formatDate(assessment.createdAt)}</span>
+              </div>
+              <div className="info-grid">
+                <div className="info-item">
+                  <span className="info-label">Title</span>
+                  <span className="info-text">{assessment.title}</span>
+                </div>
+                <div className="info-item info-full">
+                  <span className="info-label">Description</span>
+                  <span className="info-text">{assessment.description || 'No description provided.'}</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Duration</span>
+                  <span className="info-text">{assessment.duration} minutes</span>
+                </div>
+                <div className="info-item">
+                  <span className="info-label">Created Date</span>
+                  <span className="info-text">{formatDate(assessment.createdAt)}</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Questions */}
+            <section className="rv-questions">
+              <div className="rv-questions-head">
+                <h2 className="card-title">Questions</h2>
+                <span className="card-sub">{assessment.questions.length} total</span>
+              </div>
+
+              {assessment.questions.length === 0 ? (
+                <div className="card empty">
+                  <div className="empty-icon">∅</div>
+                  <h3>No questions yet</h3>
+                  <p>This assessment doesn&apos;t have any questions assigned.</p>
+                </div>
+              ) : (
+                <div className="q-list">
+                  {assessment.questions
+                    .sort((a, b) => a.order - b.order)
+                    .map((q) => {
+                      const isExpanded = !!expandedQuestions[q.id];
+                      const qData = q.question;
+                      const languages = Object.keys(qData.starterCodes || {});
+                      const testCases = qData.testCases || [];
+                      const diffKey = (qData.difficulty || 'EASY').toLowerCase();
+
+                      return (
+                        <div key={q.id} className="card q-card">
+                          <div className="q-head">
+                            <div className="q-meta">
+                              <div className="q-meta-top">
+                                <span className="q-order">#{q.order}</span>
+                                <h3 className="q-title">{qData.title}</h3>
+                              </div>
+                              <div className="q-tags">
+                                <span className={`chip chip-diff diff-${diffKey}`}>
+                                  <span className="chip-dot" />
+                                  {qData.difficulty}
+                                </span>
+                                <span className="chip chip-muted">{qData.category}</span>
+                                <span className="chip chip-muted">Weight: {q.scoreWeight}</span>
+                              </div>
                             </div>
+                            <button
+                              onClick={() => toggleQuestion(q.id)}
+                              className="btn btn-outline btn-sm"
+                            >
+                              {isExpanded ? 'Hide details' : 'View details'}
+                              <span className={`caret ${isExpanded ? 'caret-up' : ''}`}>⌃</span>
+                            </button>
                           </div>
-                          <button 
-                            onClick={() => toggleQuestion(q.id)} 
-                            className="btn secondary sm outline glass-btn"
-                          >
-                            {isExpanded ? 'Hide Details' : 'View Details'}
-                          </button>
-                        </div>
 
-                        {/* Expanded Details */}
-                        {isExpanded && (
-                          <div className="question-details">
-                            <div className="detail-section">
-                              <h4>Description</h4>
-                              <div className="markdown-content">{qData.description}</div>
-                            </div>
-                            
-                            <div className="detail-grid">
-                              <div className="detail-section">
-                                <h4>Input Format</h4>
-                                <div className="markdown-content">{qData.inputFormat}</div>
+                          {isExpanded && (
+                            <div className="q-body">
+                              <div className="detail">
+                                <h4>Description</h4>
+                                <div className="md">{qData.description}</div>
                               </div>
-                              
-                              <div className="detail-section">
-                                <h4>Output Format</h4>
-                                <div className="markdown-content">{qData.outputFormat}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="detail-section">
-                              <h4>Constraints</h4>
-                              <div className="markdown-content constraints-box">{qData.constraints}</div>
-                            </div>
 
-                            {/* Test Cases Section */}
-                            {testCases.length > 0 && (
-                              <div className="detail-section">
-                                <h4>Test Cases ({testCases.length})</h4>
-                                <div className="test-cases-grid">
-                                  {testCases.map((tc, index) => (
-                                    <div key={tc.id} className="test-case-card">
-                                      <div className="tc-header">
-                                        <span className="tc-title">Test Case {index + 1}</span>
-                                        {tc.isHidden && <span className="badge status-inactive">Hidden</span>}
-                                      </div>
-                                      <div className="tc-body">
+                              <div className="detail-grid">
+                                <div className="detail">
+                                  <h4>Input Format</h4>
+                                  <div className="md">{qData.inputFormat}</div>
+                                </div>
+                                <div className="detail">
+                                  <h4>Output Format</h4>
+                                  <div className="md">{qData.outputFormat}</div>
+                                </div>
+                              </div>
+
+                              <div className="detail">
+                                <h4>Constraints</h4>
+                                <pre className="md md-code">{qData.constraints}</pre>
+                              </div>
+
+                              {testCases.length > 0 && (
+                                <div className="detail">
+                                  <h4>
+                                    Test Cases <span className="count-pill">{testCases.length}</span>
+                                  </h4>
+                                  <div className="tc-grid">
+                                    {testCases.map((tc, index) => (
+                                      <div key={tc.id} className="tc">
+                                        <div className="tc-head">
+                                          <span className="tc-title">Test Case {index + 1}</span>
+                                          {tc.isHidden && <span className="chip chip-warn">Hidden</span>}
+                                        </div>
                                         <div className="tc-io">
-                                          <span className="tc-label">Input:</span>
+                                          <span className="tc-label">Input</span>
                                           <pre className="tc-code">{tc.input}</pre>
                                         </div>
                                         <div className="tc-io">
-                                          <span className="tc-label">Expected Output:</span>
+                                          <span className="tc-label">Expected Output</span>
                                           <pre className="tc-code">{tc.expectedOutput}</pre>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
 
-                            {languages.length > 0 && (
-                              <div className="detail-section">
-                                <h4>Available Languages</h4>
-                                <div className="language-badges">
-                                  {languages.map(lang => (
-                                    <span key={lang} className="badge lang-badge">
-                                      {formatLanguage(lang)}
-                                    </span>
-                                  ))}
+                              {languages.length > 0 && (
+                                <div className="detail">
+                                  <h4>Available Languages</h4>
+                                  <div className="lang-row">
+                                    {languages.map(lang => (
+                                      <span key={lang} className="chip chip-lang">{formatLanguage(lang)}</span>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                })}
-              </div>
-            )}
-          </section>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </section>
+          </div>
 
-        </div>
+          {/* Sidebar */}
+          <aside className="rv-side">
+            <div className="card side-card">
+              <h3 className="side-title">Assessment Summary</h3>
+              <div className="side-list">
+                <div className="side-item">
+                  <span className="side-label">Name</span>
+                  <span className="side-value truncate" title={assessment.title}>{assessment.title}</span>
+                </div>
+                <div className="side-item">
+                  <span className="side-label">Duration</span>
+                  <span className="side-value">{assessment.duration} min</span>
+                </div>
+                <div className="side-item">
+                  <span className="side-label">Security</span>
+                  <span className="chip chip-info">{assessment.securityLevel}</span>
+                </div>
+                <div className="side-item">
+                  <span className="side-label">Status</span>
+                  <span className={`chip ${assessment.isActive ? 'chip-success' : 'chip-muted'}`}>
+                    <span className="chip-dot" />
+                    {assessment.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
 
-        {/* Sticky Sidebar */}
-        <aside className="sidebar">
-          <div className="glass-card sticky-card">
-            <h3 className="sidebar-title">Assessment Summary</h3>
-            <div className="summary-list">
-              <div className="summary-item">
-                <span className="label">Name</span>
-                <span className="value text-truncate" title={assessment.title}>{assessment.title}</span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Duration</span>
-                <span className="value">{assessment.duration} min</span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Security Level</span>
-                <span className="value">{assessment.securityLevel}</span>
-              </div>
-              <hr className="divider" />
-              <div className="summary-item">
-                <span className="label">Total Questions</span>
-                <span className="value">{assessment.questions.length}</span>
-              </div>
-              <div className="summary-item diff-stat">
-                <span className="label">Easy Questions</span>
-                <span className="value text-green">{difficultyCounts.EASY}</span>
-              </div>
-              <div className="summary-item diff-stat">
-                <span className="label">Medium Questions</span>
-                <span className="value text-yellow">{difficultyCounts.MEDIUM}</span>
-              </div>
-              <div className="summary-item diff-stat">
-                <span className="label">Hard Questions</span>
-                <span className="value text-red">{difficultyCounts.HARD}</span>
+                <div className="side-divider" />
+
+                <div className="side-item">
+                  <span className="side-label">Total Questions</span>
+                  <span className="side-value strong">{assessment.questions.length}</span>
+                </div>
+
+                <div className="diff-bars">
+                  <div className="diff-bar">
+                    <div className="diff-bar-head">
+                      <span>Easy</span>
+                      <span className="text-easy strong">{difficultyCounts.EASY}</span>
+                    </div>
+                    <div className="bar">
+                      <div className="bar-fill bar-easy" style={{
+                        width: `${assessment.questions.length ? (difficultyCounts.EASY / assessment.questions.length) * 100 : 0}%`
+                      }} />
+                    </div>
+                  </div>
+                  <div className="diff-bar">
+                    <div className="diff-bar-head">
+                      <span>Medium</span>
+                      <span className="text-medium strong">{difficultyCounts.MEDIUM}</span>
+                    </div>
+                    <div className="bar">
+                      <div className="bar-fill bar-medium" style={{
+                        width: `${assessment.questions.length ? (difficultyCounts.MEDIUM / assessment.questions.length) * 100 : 0}%`
+                      }} />
+                    </div>
+                  </div>
+                  <div className="diff-bar">
+                    <div className="diff-bar-head">
+                      <span>Hard</span>
+                      <span className="text-hard strong">{difficultyCounts.HARD}</span>
+                    </div>
+                    <div className="bar">
+                      <div className="bar-fill bar-hard" style={{
+                        width: `${assessment.questions.length ? (difficultyCounts.HARD / assessment.questions.length) * 100 : 0}%`
+                      }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="side-divider" />
+
+                <button
+                  onClick={() => router.push(`/admin/coding-tests/${assessmentId}/assign`)}
+                  className="btn btn-primary btn-block"
+                >
+                  Assign Candidates
+                </button>
+                <button
+                  onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                  className="btn btn-outline btn-block"
+                >
+                  View Results
+                </button>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        </div>
 
+        <style jsx global>{styles}</style>
       </div>
-      <style jsx global>{styles}</style>
-    </div>
-
     </>
-
   );
 }
 
-// --- Global Styles (SaaS Theme with Glassmorphism) ---
+// --- Premium SaaS Styles ---
 const styles = `
-  /* Default Dark Theme Variables */
-  .theme-wrapper.dark {
-    --bg-base: #050505;
-    --glass-bg: rgba(20, 20, 22, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-hover: rgba(30, 30, 35, 0.8);
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --code-bg: rgba(0, 0, 0, 0.4);
-    --code-border: rgba(255, 255, 255, 0.04);
+  .rv-root.dark {
+    --bg: #07090d;
+    --bg-elev: #0c1016;
+    --surface: rgba(20, 24, 32, 0.7);
+    --surface-2: rgba(28, 32, 42, 0.6);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e6e8ec;
+    --text-muted: #9aa3af;
+    --text-dim: #6b7280;
+    --code-bg: rgba(0,0,0,0.45);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.35);
+    --shadow-lg: 0 20px 50px rgba(0,0,0,0.5);
+    --ring: rgba(59,130,246,0.55);
   }
-
-  /* Light Theme Variables */
-  .theme-wrapper.light {
-    --bg-base: #f8fafc;
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(0, 0, 0, 0.1);
-    --glass-hover: rgba(255, 255, 255, 1);
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-muted: #64748b;
+  .rv-root.light {
+    --bg: #f6f7f9;
+    --bg-elev: #ffffff;
+    --surface: rgba(255,255,255,0.9);
+    --surface-2: #f8fafc;
+    --border: rgba(15,23,42,0.08);
+    --border-strong: rgba(15,23,42,0.14);
+    --text: #0f172a;
+    --text-muted: #475569;
+    --text-dim: #64748b;
     --code-bg: #f1f5f9;
-    --code-border: rgba(0, 0, 0, 0.05);
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+    --shadow-md: 0 6px 20px rgba(15,23,42,0.08);
+    --shadow-lg: 0 16px 40px rgba(15,23,42,0.12);
+    --ring: rgba(59,130,246,0.45);
   }
 
-  /* Universal Variables */
-  .theme-wrapper {
-    --accent-blue: #3b82f6;
-    --accent-blue-hover: #2563eb;
-    
-    --color-easy: #10b981;
-    --bg-easy: rgba(16, 185, 129, 0.1);
-    
-    --color-medium: #f59e0b;
-    --bg-medium: rgba(245, 158, 11, 0.1);
-    
-    --color-hard: #ef4444;
-    --bg-hard: rgba(239, 68, 68, 0.1);
-    
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
-    
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  .rv-root {
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-soft: rgba(59,130,246,0.12);
+    --success: #10b981;
+    --success-soft: rgba(16,185,129,0.12);
+    --warn: #f59e0b;
+    --warn-soft: rgba(245,158,11,0.12);
+    --danger: #ef4444;
+    --danger-soft: rgba(239,68,68,0.12);
+    --info: #06b6d4;
+    --info-soft: rgba(6,182,212,0.12);
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+    --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
-    background-color: var(--bg-base);
+    position: relative;
     min-height: 100vh;
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
-  /* Apply background elements dynamically based on theme */
-  .theme-wrapper.dark {
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.03), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.02), transparent 25%);
-    background-attachment: fixed;
+  .rv-bg-blob {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
   }
+  .blob-a { top: -200px; left: -150px; background: radial-gradient(circle, #3b82f6, transparent 70%); }
+  .blob-b { bottom: -250px; right: -150px; background: radial-gradient(circle, #10b981, transparent 70%); }
+  .rv-root.light .rv-bg-blob { opacity: 0.18; }
 
-  .theme-wrapper.light {
-    background-image: 
-      radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.05), transparent 25%),
-      radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.05), transparent 25%);
-    background-attachment: fixed;
-  }
-
-  /* Layout - FULL WIDTH update */
-  .layout-container {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 100%;
+  .rv-shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 2rem;
-    gap: 2rem;
+    padding: 32px 28px 64px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 28px;
+  }
+  @media (max-width: 1100px) {
+    .rv-shell { grid-template-columns: 1fr; padding: 20px 16px 48px; }
   }
 
-  @media (min-width: 1024px) {
-    .layout-container {
-      flex-direction: row;
-      align-items: flex-start;
-      padding: 2.5rem 4rem; /* More breathing room for full width */
-    }
-  }
-
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    min-width: 0;
-  }
-
-  .sidebar {
-    width: 100%;
-  }
-
-  @media (min-width: 1024px) {
-    .sidebar {
-      width: 360px;
-      position: sticky;
-      top: 2.5rem;
-    }
-  }
-
-  /* Glass Cards */
-  .glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    transition: background 0.3s, border-color 0.3s;
-  }
-  
-  .theme-wrapper.dark .glass-card {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Typography */
-  h1, h2, h3, h4 {
-    margin: 0;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  .section-title {
-    font-size: 1.25rem;
-    color: var(--text-primary);
-    margin-bottom: 1.25rem;
-  }
-
-  .text-truncate {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
+  .rv-main { min-width: 0; display: flex; flex-direction: column; gap: 24px; }
 
   /* Header */
-  .page-header {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--glass-border);
+  .rv-header { display: flex; flex-direction: column; gap: 14px; }
+  .rv-crumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+  .rv-crumb-link {
+    background: none; border: 0; color: var(--text-muted); cursor: pointer; padding: 0;
+    font: inherit; transition: color .15s;
   }
+  .rv-crumb-link:hover { color: var(--text); }
+  .rv-crumb-sep { opacity: 0.5; }
+  .rv-crumb-current { color: var(--text); font-weight: 500; }
 
-  @media (min-width: 768px) {
-    .page-header {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
+  .rv-header-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 20px; flex-wrap: wrap;
   }
-
-  .page-header h1 {
-    font-size: 1.75rem;
-    color: var(--text-primary);
-  }
-
-  .subtitle {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    margin-top: 0.5rem;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  /* Stats Grid */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-  }
-
-  .stat-card {
-    padding: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    transition: transform 0.2s, background 0.2s;
-  }
-  
-  .stat-card:hover {
-    background: var(--glass-hover);
-    transform: translateY(-2px);
-  }
-
-  .stat-label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .stat-value {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  /* Info Card */
-  .info-card {
-    padding: 1.5rem;
-  }
-
-  .info-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  @media (min-width: 640px) {
-    .info-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .info-label {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-  }
-
-  .info-text {
-    font-size: 1rem;
-    color: var(--text-primary);
-    line-height: 1.5;
-  }
-
-  /* Questions Section */
-  .questions-section {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .questions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .question-card {
-    padding: 1.5rem;
-    transition: background 0.2s;
-  }
-
-  .question-header {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
-  }
-
-  @media (min-width: 640px) {
-    .question-header {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-    }
-  }
-
-  .question-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .q-order {
-    font-size: 0.85rem;
-    color: var(--accent-blue);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .q-title {
-    font-size: 1.25rem;
-    color: var(--text-primary);
-  }
-
-  .q-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 0.25rem;
-  }
-
-  /* Question Details (Expanded) */
-  .question-details {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--glass-border);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    animation: fadeIn 0.3s ease-in-out;
-  }
-
-  .detail-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-  
-  @media (min-width: 768px) {
-    .detail-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .detail-section h4 {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-  }
-
-  .markdown-content {
-    font-size: 0.95rem;
-    color: var(--text-primary);
-    line-height: 1.6;
-    background: var(--code-bg);
-    padding: 1rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--code-border);
-    white-space: pre-wrap;
-  }
-
-  .constraints-box {
-    font-family: monospace;
-    font-size: 0.9rem;
-  }
-
-  /* Test Cases Design */
-  .test-cases-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-  }
-
-  .test-case-card {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-
-  .tc-header {
-    background: rgba(0, 0, 0, 0.03);
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--glass-border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .theme-wrapper.dark .tc-header {
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  .tc-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-  }
-
-  .tc-body {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .tc-io {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .tc-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-  }
-
-  .tc-code {
-    background: var(--code-bg);
-    border: 1px solid var(--code-border);
-    padding: 0.75rem;
-    border-radius: var(--radius-sm);
-    font-family: monospace;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    white-space: pre-wrap;
+  .rv-header-titles { min-width: 0; flex: 1; }
+  .rv-title-line { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .rv-title-line h1 {
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     margin: 0;
+    line-height: 1.2;
   }
-
-  .language-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  /* Badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.3rem 0.75rem;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    border: 1px solid transparent;
-  }
-
-  .security-badge {
-    background: rgba(161, 161, 170, 0.1);
-    color: var(--text-secondary);
-    border-color: var(--glass-border);
-    align-self: flex-start;
-  }
-
-  .status-active {
-    background: var(--bg-easy);
-    color: var(--color-easy);
-    border-color: rgba(16, 185, 129, 0.2);
-    align-self: flex-start;
-  }
-
-  .status-inactive {
-    background: rgba(161, 161, 170, 0.1);
-    color: var(--text-muted);
-    border-color: var(--glass-border);
-    align-self: flex-start;
-  }
-
-  .diff-easy {
-    background: var(--bg-easy);
-    color: var(--color-easy);
-    border-color: rgba(16, 185, 129, 0.2);
-  }
-
-  .diff-medium {
-    background: var(--bg-medium);
-    color: var(--color-medium);
-    border-color: rgba(245, 158, 11, 0.2);
-  }
-
-  .diff-hard {
-    background: var(--bg-hard);
-    color: var(--color-hard);
-    border-color: rgba(239, 68, 68, 0.2);
-  }
-
-  .tag-category {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--accent-blue);
-    border-color: rgba(59, 130, 246, 0.2);
-  }
-
-  .lang-badge {
-    background: rgba(161, 161, 170, 0.1);
-    color: var(--text-primary);
-    border-color: var(--glass-border);
-  }
+  .rv-sub { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+  .rv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
   /* Buttons */
   .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all 0.2s;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 38px; padding: 0 14px;
+    border-radius: var(--r-sm);
+    font-size: 13.5px; font-weight: 500;
+    cursor: pointer; user-select: none;
     border: 1px solid transparent;
+    transition: all .15s ease;
+    white-space: nowrap;
+    font-family: inherit;
+  }
+  .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--primary); color: #fff;
+    box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.18);
+  }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-outline {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--border-strong);
+    backdrop-filter: blur(12px);
+  }
+  .btn-outline:hover { background: var(--surface-2); border-color: var(--text-dim); }
+
+  .btn-ghost {
+    background: transparent; color: var(--text-muted);
+    border-color: var(--border);
+    width: 38px; padding: 0;
+  }
+  .btn-ghost:hover { color: var(--text); background: var(--surface); }
+
+  .btn-sm { height: 32px; padding: 0 12px; font-size: 12.5px; }
+  .btn-block { width: 100%; }
+
+  .caret { display: inline-block; transition: transform .2s; font-size: 14px; line-height: 1; }
+  .caret-up { transform: rotate(180deg); }
+
+  /* Stats */
+  .rv-stats {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+    gap: 12px;
+  }
+  @media (max-width: 900px) { .rv-stats { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 500px) { .rv-stats { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    backdrop-filter: blur(12px);
+    transition: transform .15s, border-color .15s;
+  }
+  .stat:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+  .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .stat-unit { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-left: 2px; }
+
+  .text-easy { color: var(--success); }
+  .text-medium { color: var(--warn); }
+  .text-hard { color: var(--danger); }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 22px;
+    backdrop-filter: blur(14px);
+    box-shadow: var(--shadow-sm);
+  }
+  .card-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  .card-sub { font-size: 12.5px; color: var(--text-muted); }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .info-grid { grid-template-columns: 1fr; } }
+  .info-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .info-full { grid-column: 1 / -1; }
+  .info-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+  .info-text { font-size: 14px; color: var(--text); line-height: 1.55; word-break: break-word; }
+
+  /* Chips / badges */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    font-size: 12px; font-weight: 500;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .chip-success { color: var(--success); background: var(--success-soft); border-color: rgba(16,185,129,0.3); }
+  .chip-muted { color: var(--text-muted); }
+  .chip-info { color: var(--info); background: var(--info-soft); border-color: rgba(6,182,212,0.3); }
+  .chip-warn { color: var(--warn); background: var(--warn-soft); border-color: rgba(245,158,11,0.3); }
+  .chip-lang { color: var(--primary); background: var(--primary-soft); border-color: rgba(59,130,246,0.3); }
+
+  .chip-diff.diff-easy   { color: var(--success); background: var(--success-soft); border-color: rgba(16,185,129,0.3); }
+  .chip-diff.diff-medium { color: var(--warn);    background: var(--warn-soft);    border-color: rgba(245,158,11,0.3); }
+  .chip-diff.diff-hard   { color: var(--danger);  background: var(--danger-soft);  border-color: rgba(239,68,68,0.3); }
+
+  /* Questions */
+  .rv-questions { display: flex; flex-direction: column; gap: 14px; }
+  .rv-questions-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px; }
+  .q-list { display: flex; flex-direction: column; gap: 14px; }
+
+  .q-card { padding: 20px; transition: border-color .15s, transform .15s; }
+  .q-card:hover { border-color: var(--border-strong); }
+
+  .q-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .q-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .q-meta-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .q-order {
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    background: var(--surface-2); padding: 3px 8px; border-radius: 6px;
+    border: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .q-title { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; line-height: 1.35; }
+  .q-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .q-body {
+    margin-top: 18px; padding-top: 18px;
+    border-top: 1px dashed var(--border);
+    display: flex; flex-direction: column; gap: 18px;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  .detail h4 {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); font-weight: 600; margin: 0 0 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .md {
+    color: var(--text); font-size: 14px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .md-code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 12px 14px;
+    font-family: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .detail-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 700px) { .detail-grid { grid-template-columns: 1fr; } }
+
+  .count-pill {
+    font-size: 11px; background: var(--primary-soft); color: var(--primary);
+    padding: 1px 7px; border-radius: 999px; font-weight: 600;
   }
 
-  .btn.primary {
-    background: var(--accent-blue);
-    color: #ffffff;
+  /* Test Cases */
+  .tc-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 12px;
+  }
+  .tc {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: border-color .15s;
+  }
+  .tc:hover { border-color: var(--border-strong); }
+  .tc-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .tc-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .tc-io { display: flex; flex-direction: column; gap: 4px; }
+  .tc-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .tc-code {
+    margin: 0;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--text);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
-  .btn.primary:hover {
-    background: var(--accent-blue-hover);
-  }
+  .lang-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
-  .btn.secondary {
-    background: transparent;
-    color: var(--text-primary);
+  /* Empty / Error */
+  .empty {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 48px 24px; gap: 6px;
   }
+  .empty-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-size: 22px; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .empty h3 { margin: 0; font-size: 16px; font-weight: 600; }
+  .empty p { margin: 0; color: var(--text-muted); font-size: 14px; }
 
-  .btn.outline {
-    border-color: var(--glass-border);
+  .rv-error { min-height: 80vh; display: grid; place-items: center; padding: 24px; }
+  .rv-error-card {
+    max-width: 420px; width: 100%; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-lg); padding: 32px; backdrop-filter: blur(14px);
+    box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
   }
-
-  .btn.outline:hover {
-    background: var(--glass-hover);
+  .rv-error-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--danger-soft); color: var(--danger);
+    display: grid; place-items: center; font-size: 26px; font-weight: 700;
+    margin-bottom: 6px;
   }
-
-  .glass-btn {
-    background: var(--glass-bg);
-  }
-
-  .btn.sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
+  .rv-error-card h2 { margin: 0; font-size: 18px; font-weight: 600; }
+  .rv-error-card p { margin: 0 0 12px; color: var(--text-muted); font-size: 14px; }
 
   /* Sidebar */
-  .sticky-card {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
+  .rv-side { min-width: 0; }
+  @media (min-width: 1101px) {
+    .rv-side { position: sticky; top: 24px; align-self: start; }
   }
-
-  .sidebar-title {
-    font-size: 1.1rem;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--glass-border);
+  .side-card { padding: 20px; }
+  .side-title { font-size: 14px; font-weight: 600; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .side-list { display: flex; flex-direction: column; gap: 12px; }
+  .side-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    font-size: 13px; min-width: 0;
   }
+  .side-label { color: var(--text-muted); font-weight: 500; }
+  .side-value { color: var(--text); font-weight: 500; min-width: 0; }
+  .side-value.strong { font-weight: 700; font-size: 15px; }
+  .side-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-  .summary-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; display: inline-block; }
+
+  .diff-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .diff-bar { display: flex; flex-direction: column; gap: 6px; }
+  .diff-bar-head { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-muted); }
+  .strong { font-weight: 700; }
+  .bar { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+  .bar-easy { background: linear-gradient(90deg, #059669, #10b981); }
+  .bar-medium { background: linear-gradient(90deg, #d97706, #f59e0b); }
+  .bar-hard { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+  /* Skeleton */
+  .sk {
+    background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface) 50%, var(--surface-2) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
   }
-
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    align-items: center;
-  }
-
-  .summary-item .label {
-    color: var(--text-secondary);
-  }
-
-  .summary-item .value {
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--glass-border);
-    margin: 0.5rem 0;
-  }
-
-  .text-green { color: var(--color-easy) !important; }
-  .text-yellow { color: var(--color-medium) !important; }
-  .text-red { color: var(--color-hard) !important; }
-
-  /* Error / Empty States */
-  .error-screen {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 60vh;
-    padding: 2rem;
-  }
-
-  .error-card {
-    padding: 3rem;
-    text-align: center;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: center;
-  }
-
-  .error-card p {
-    color: var(--text-secondary);
-  }
-
-  .empty-state {
-    padding: 4rem;
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 1.1rem;
-  }
-
-  /* Animations & Skeletons */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .skeleton-box {
-    background: var(--code-bg);
-    border-radius: var(--radius-md);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .skeleton-box::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, var(--glass-border), transparent);
-    animation: shimmer 1.5s infinite;
-  }
-
-  @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-
-  .title-skeleton { height: 60px; width: 40%; margin-bottom: 1rem; }
-  .stat-card-skeleton { height: 100px; }
-  .info-card-skeleton { height: 200px; }
-  .list-skeleton { height: 400px; }
-  .sidebar-skeleton { height: 500px; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .sk-title { height: 60px; margin-bottom: 24px; }
+  .sk-stat { height: 78px; }
+  .sk-info { height: 220px; margin-top: 24px; }
+  .sk-list { height: 400px; margin-top: 24px; }
+  .sk-side { height: 480px; }
 `;

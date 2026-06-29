@@ -291,10 +291,7 @@ async finalSubmit(
       : (totalScore / maxPossibleScore) * 100;
 
   await this.prisma.codingAttempt.update({
-    where: {
-      id: attemptId,
-    },
-
+    where: { id: attemptId },
     data: {
       status: 'COMPLETED',
       submittedAt: new Date(),
@@ -304,12 +301,20 @@ async finalSubmit(
     },
   });
 
+  // Mark the invitation as COMPLETED so assign page shows correct status
+  await this.prisma.codingInvitation.updateMany({
+    where: {
+      codingTestId: attempt.codingTestId,
+      userId: attempt.userId,
+    },
+    data: { status: 'COMPLETED' },
+  });
+
   return {
     success: true,
     totalScore,
     completedQuestions,
-    totalQuestions:
-      attempt.totalQuestions,
+    totalQuestions: attempt.totalQuestions,
     percentage,
   };
 }
@@ -507,6 +512,15 @@ async proFinalSubmit(
   await this.prisma.codingAttempt.update({
     where: { id: attemptId },
     data: { status: 'COMPLETED', submittedAt: new Date(), completedQuestions, totalScore, percentage },
+  });
+
+  // Mark the invitation as COMPLETED so assign page and results show correct status
+  await this.prisma.codingInvitation.updateMany({
+    where: {
+      codingTestId: attempt.codingTestId,
+      userId: attempt.userId,
+    },
+    data: { status: 'COMPLETED' },
   });
 
   return { success: true, totalScore, completedQuestions, totalQuestions: attempt.totalQuestions, percentage };

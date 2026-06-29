@@ -1,8 +1,38 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, FormEvent } from 'react';
+import React, { useState, useEffect, useCallback, FormEvent, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
+import {
+  Users,
+  Search,
+  Mail,
+  Clock,
+  Shield,
+  Check,
+  X,
+  Send,
+  Code,
+  Sparkles,
+  ChevronLeft,
+  FileText,
+  BarChart3,
+  Loader2,
+  AlertTriangle,
+  Inbox,
+  Trash2,
+  CheckCircle2,
+  CircleDashed,
+  PlayCircle,
+  UserCheck,
+  UserPlus,
+  Info,
+  ArrowUpRight,
+  Activity,
+  Hash,
+  Zap,
+  Coins,
+} from 'lucide-react';
 
 // --- TypeScript Interfaces ---
 
@@ -60,6 +90,11 @@ export default function AssignPage() {
   const [emails, setEmails] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [search, setSearch] = useState<string>('');
+
+  // Credit state
+  const [creditBalance, setCreditBalance] = useState<number | null>(null);
+  const [estimateResult, setEstimateResult] = useState<{ requiredCredits: number; currentBalance: number; remainingBalance: number; enoughCredits: boolean } | null>(null);
 
   // --- Constants ---
   const API_BASE_URL = 'http://localhost:3000';
@@ -113,21 +148,62 @@ export default function AssignPage() {
     setLoading(false);
   }, [fetchAssessment, fetchInvitations]);
 
+  // Fetch credit balance
+  const fetchBalance = useCallback(async () => {
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE_URL}/credits`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setCreditBalance(d.balance ?? 0);
+      }
+    } catch { /* swallow */ }
+  }, []);
+
+  // Estimate cost whenever assessment loads or email list changes
+  const runEstimate = useCallback(async (securityLevel: string, candidateCount: number) => {
+    if (candidateCount < 1) return;
+    try {
+      const token = getToken();
+      const res = await fetch(`${API_BASE_URL}/credits/estimate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ securityLevel, candidateCount }),
+      });
+      if (res.ok) setEstimateResult(await res.json());
+    } catch { /* swallow */ }
+  }, []);
+
   // Initial Load
   useEffect(() => {
     if (assessmentId) {
       loadData();
+      fetchBalance();
     }
-  }, [assessmentId, loadData]);
+  }, [assessmentId, loadData, fetchBalance]);
+
+  // Re-run estimate when assessment loads or email count changes
+  const emailCount = useMemo(() =>
+    emails.split(/[\s,]+/).filter(e => e.trim() !== '').length,
+    [emails]);
+
+  useEffect(() => {
+    if (assessment && emailCount > 0) {
+      runEstimate(assessment.securityLevel, emailCount);
+    } else {
+      setEstimateResult(null);
+    }
+  }, [assessment, emailCount, runEstimate]);
 
   // --- Handlers ---
 
   const handleBulkInvite = async (e: FormEvent) => {
     e.preventDefault();
-    
-    // Split by comma or whitespace and remove empty entries
-    const emailList = emails.split(/[\s,]+/).filter(email => email.trim() !== '');
-    
+
+    const emailList = emails.split(/[\s,]+/).filter((email) => email.trim() !== '');
+
     if (emailList.length === 0) {
       setError('Please enter at least one valid email address.');
       setTimeout(() => setError(null), 3000);
@@ -140,8 +216,7 @@ export default function AssignPage() {
 
     try {
       const token = getToken();
-      
-      // Execute all invite requests concurrently
+
       const invitePromises = emailList.map(async (candidateEmail) => {
         const res = await fetch(`${API_BASE_URL}/coding-tests/${assessmentId}/invite`, {
           method: 'POST',
@@ -162,10 +237,10 @@ export default function AssignPage() {
       await Promise.all(invitePromises);
 
       await fetchInvitations();
-      setEmails(''); // Clear input on success
+      await fetchBalance(); // refresh wallet after deduction
+      setEmails('');
       setSuccess(`Successfully invited ${emailList.length} candidate(s)!`);
-      
-      // Auto dismiss success after 3 seconds
+
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to send one or more invitations.');
@@ -182,12 +257,15 @@ export default function AssignPage() {
 
     try {
       const token = getToken();
-      const res = await fetch(`${API_BASE_URL}/coding-tests/${assessmentId}/invitations/${invitationId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const res = await fetch(
+        `${API_BASE_URL}/coding-tests/${assessmentId}/invitations/${invitationId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!res.ok) {
         throw new Error('Failed to remove invitation');
@@ -201,771 +279,751 @@ export default function AssignPage() {
     }
   };
 
-  // --- Render Helpers ---
+  // --- Derived stats ---
+  const stats = useMemo(() => {
+    const total = invitations.length;
+    let pending = 0,
+      accepted = 0,
+      completed = 0,
+      inProgress = 0;
+    invitations.forEach((i) => {
+      const s = (i.status || '').toUpperCase();
+      const a = (i.attemptStatus || '').toUpperCase();
+      if (a === 'COMPLETED') completed++;
+      else if (a === 'IN_PROGRESS') inProgress++;
+      else if (s === 'ACCEPTED') accepted++;
+      else pending++;
+    });
+    return { total, pending, accepted, completed, inProgress };
+  }, [invitations]);
+
+  const filteredInvitations = useMemo(() => {
+    if (!search.trim()) return invitations;
+    const q = search.toLowerCase();
+    return invitations.filter(
+      (i) =>
+        i.candidateEmail.toLowerCase().includes(q) ||
+        i.status.toLowerCase().includes(q) ||
+        (i.attemptStatus || '').toLowerCase().includes(q),
+    );
+  }, [invitations, search]);
+
+  // --- Badge helpers ---
+  const statusBadge = (status: string) => {
+    const s = status.toUpperCase();
+    const map: Record<string, string> = {
+      PENDING: 'bg-amber-500/10 text-amber-300 ring-amber-400/30',
+      ACCEPTED: 'bg-blue-500/10 text-blue-300 ring-blue-400/30',
+      COMPLETED: 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30',
+      EXPIRED: 'bg-slate-500/10 text-slate-400 ring-slate-400/30',
+      CANCELLED: 'bg-red-500/10 text-red-300 ring-red-400/30',
+    };
+    return map[s] || 'bg-slate-500/10 text-slate-300 ring-slate-400/30';
+  };
+
+  const securityBadge = (level?: string) => {
+    const s = (level || '').toUpperCase();
+    if (s.includes('HIGH')) return 'bg-red-500/10 text-red-300 ring-red-400/30';
+    if (s.includes('MED')) return 'bg-amber-500/10 text-amber-300 ring-amber-400/30';
+    return 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30';
+  };
+
+  // --- Render ---
 
   if (loading) {
     return (
-      <div className="layout-container">
-        <div className="main-content skeleton-wrapper">
-          <div className="skeleton-box title-skeleton"></div>
-          <div className="skeleton-grid">
-            <div className="skeleton-box card-skeleton"></div>
-            <div className="skeleton-box card-skeleton"></div>
-            <div className="skeleton-box card-skeleton"></div>
-            <div className="skeleton-box card-skeleton"></div>
+      <>
+        <AdminNavbar />
+        <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.08),transparent_50%)]" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+            <div className="h-4 w-40 rounded-md bg-slate-800/60 animate-pulse mb-4" />
+            <div className="h-9 w-80 rounded-lg bg-slate-800/60 animate-pulse mb-3" />
+            <div className="h-4 w-96 rounded-md bg-slate-800/40 animate-pulse mb-10" />
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-28 rounded-2xl bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/60 animate-pulse"
+                />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="h-72 rounded-2xl bg-slate-900/40 border border-slate-800/60 animate-pulse" />
+                <div className="h-96 rounded-2xl bg-slate-900/40 border border-slate-800/60 animate-pulse" />
+              </div>
+              <div className="h-96 rounded-2xl bg-slate-900/40 border border-slate-800/60 animate-pulse" />
+            </div>
           </div>
-          <div className="skeleton-box big-card-skeleton"></div>
         </div>
-        <aside className="sidebar">
-          <div className="skeleton-box sidebar-skeleton"></div>
-        </aside>
-        <style jsx global>{styles}</style>
-      </div>
+      </>
     );
   }
 
   if (!assessment && error) {
     return (
-      <div className="error-screen">
-        <h2>Something went wrong</h2>
-        <p>{error}</p>
-        <button onClick={() => router.push('/tests')} className="btn primary">
-          Back to Tests
-        </button>
-        <style jsx global>{styles}</style>
-      </div>
+      <>
+        <AdminNavbar />
+        <div className="relative min-h-screen overflow-hidden bg-slate-950 flex items-center justify-center px-4">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.08),transparent_60%)]" />
+          <div className="relative max-w-md w-full text-center bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-8 shadow-2xl shadow-black/40">
+            <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-500/5 ring-1 ring-red-400/30 flex items-center justify-center mb-5">
+              <AlertTriangle className="h-7 w-7 text-red-300" />
+            </div>
+            <h2 className="text-xl font-semibold tracking-tight text-white">Something went wrong</h2>
+            <p className="mt-2 text-sm text-slate-400">{error}</p>
+            <button
+              onClick={() => router.push('/tests')}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-blue-500 transition-all"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back to Tests
+            </button>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
     <>
-    <AdminNavbar />
+      <AdminNavbar />
 
-    <div className="layout-container">
-      {/* Banner Overlays */}
-      <div className="toast-container">
-        {success && <div className="banner success-banner">{success}</div>}
-        {error && <div className="banner error-banner">{error}</div>}
-      </div>
+      <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
+        {/* Ambient backdrop */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 left-1/3 h-[500px] w-[500px] rounded-full bg-blue-500/10 blur-[120px]" />
+          <div className="absolute top-1/2 -right-40 h-[400px] w-[400px] rounded-full bg-cyan-500/5 blur-[120px]" />
+          <div
+            className="absolute inset-0 opacity-[0.015]"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px)',
+              backgroundSize: '48px 48px',
+            }}
+          />
+        </div>
 
-      <div className="main-content">
-        <header className="page-header">
-          <div className="header-titles">
-            <h1>💻 Coding Assessment Assignment</h1>
-            <p className="subtitle">Invite candidates and manage assessment access.</p>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
-              className="btn secondary outline"
-            >
-              📊 View Results
-            </button>
-            <button
-              onClick={() => router.push(`/admin/coding-tests/${assessmentId}`)}
-              className="btn secondary outline"
-            >
-              📄 View Details
-            </button>
-            <button 
-              onClick={() => router.push('/admin/tests')} 
-              className="btn secondary outline"
-            >
-              ← Back To Tests
-            </button>
-          </div>
-        </header>
-
-        {/* Top Summary Cards */}
-        <section className="summary-grid">
-          <div className="card stat-card">
-            <span className="stat-label">Assessment Title</span>
-            <span className="stat-value">{assessment?.title}</span>
-          </div>
-          <div className="card stat-card">
-            <span className="stat-label">Duration</span>
-            <span className="stat-value">{assessment?.duration} Minutes</span>
-          </div>
-          <div className="card stat-card">
-            <span className="stat-label">Security Level</span>
-            <span className="stat-value badge security-badge">{assessment?.securityLevel}</span>
-          </div>
-          <div className="card stat-card">
-            <span className="stat-label">Questions</span>
-            <span className="stat-value">{assessment?.questions.length || 0}</span>
-          </div>
-        </section>
-
-        {/* Invite Candidate Card (Bulk) */}
-        <section className="card form-card">
-          <h2 className="card-title">Invite Candidates</h2>
-          <form onSubmit={handleBulkInvite} className="invite-form">
-            <div className="input-group full-width-group">
-              <label htmlFor="emails">Candidate Emails (separated by commas or new lines)</label>
-              <textarea
-                id="emails"
-                placeholder="candidate1@gmail.com, candidate2@gmail.com&#10;candidate3@gmail.com"
-                value={emails}
-                onChange={(e) => setEmails(e.target.value)}
-                required
-                disabled={inviteLoading}
-                className="input-field textarea-field"
-                rows={5}
-              />
+        {/* Toasts */}
+        <div className="fixed top-6 right-6 z-50 flex flex-col gap-2 max-w-sm">
+          {success && (
+            <div className="flex items-start gap-3 rounded-xl border border-emerald-400/30 bg-emerald-500/10 backdrop-blur-xl px-4 py-3 text-sm text-emerald-200 shadow-2xl shadow-emerald-500/10 animate-in fade-in slide-in-from-top-2">
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{success}</span>
             </div>
-            <div className="form-actions">
-              <button type="submit" className="btn primary" disabled={inviteLoading || !emails.trim()}>
-                {inviteLoading ? 'Sending Invites...' : 'Send Invitations'}
+          )}
+          {error && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-400/30 bg-red-500/10 backdrop-blur-xl px-4 py-3 text-sm text-red-200 shadow-2xl shadow-red-500/10 animate-in fade-in slide-in-from-top-2">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+          {/* Page Header */}
+          <header className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between pb-8 border-b border-slate-800/60">
+            <div className="min-w-0">
+              <nav className="flex items-center gap-1.5 text-xs text-slate-500 mb-3">
+                <button
+                  onClick={() => router.push('/admin/tests')}
+                  className="hover:text-slate-200 transition-colors"
+                >
+                  Tests
+                </button>
+                <span className="text-slate-700">/</span>
+                <span className="text-slate-400 truncate max-w-[200px]">{assessment?.title}</span>
+                <span className="text-slate-700">/</span>
+                <span className="text-slate-200 font-medium">Assign</span>
+              </nav>
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 ring-1 ring-blue-400/30 flex items-center justify-center shadow-lg shadow-blue-500/10">
+                  <Code className="h-5 w-5 text-blue-300" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white truncate">
+                    {assessment?.title || 'Coding Assessment'}
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-400 flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+                    Invite candidates and orchestrate assessment access.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => router.push('/admin/tests')}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur px-3.5 py-2 text-sm text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 transition-all"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </button>
+              <button
+                onClick={() => router.push(`/admin/coding-tests/${assessmentId}`)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur px-3.5 py-2 text-sm text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 transition-all"
+              >
+                <FileText className="h-4 w-4" />
+                Details
+              </button>
+              <button
+                onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                className="group inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-blue-500 transition-all"
+              >
+                <BarChart3 className="h-4 w-4" />
+                View Results
+                <ArrowUpRight className="h-3.5 w-3.5 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </button>
             </div>
-          </form>
-        </section>
+          </header>
 
-        {/* Invited Candidates Table */}
-        <section className="card table-card">
-          <div className="card-header">
-            <h2 className="card-title">Invited Candidates</h2>
-            <span className="count-badge">{invitations.length} Total</span>
-          </div>
-          
-          <div className="table-responsive">
-            {invitations.length === 0 ? (
-              <div className="empty-state">
-                <p>No candidates invited yet.</p>
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Email</th>
-                    <th>Linked User</th>
-                    <th>Invite Status</th>
-                    <th>Attempt Status</th>
-                    <th>Invited At</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invitations.map((inv) => (
-                    <tr key={inv.id}>
-                      <td className="font-medium text-white">{inv.candidateEmail}</td>
-                      <td>
-                        <span className={`badge ${inv.userId ? 'badge-blue' : 'badge-gray'}`}>
-                          {inv.userId ? 'Registered' : 'Not Registered'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge status-${inv.status.toLowerCase()}`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td>
-                        {inv.attemptStatus ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                            <span className={`badge ${
-                              inv.attemptStatus === 'COMPLETED' ? 'status-completed' :
-                              inv.attemptStatus === 'IN_PROGRESS' ? 'status-in-progress' : 'badge-gray'
-                            }`}>
-                              {inv.attemptStatus === 'COMPLETED' ? '✅ Completed' :
-                               inv.attemptStatus === 'IN_PROGRESS' ? '🔄 In Progress' : inv.attemptStatus}
+          {/* Stat Cards */}
+          <section className="mt-8 grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            <StatCard
+              label="Total"
+              value={stats.total}
+              tone="slate"
+              icon={<Users className="h-4 w-4" />}
+            />
+            <StatCard
+              label="Pending"
+              value={stats.pending}
+              tone="amber"
+              icon={<CircleDashed className="h-4 w-4" />}
+            />
+            <StatCard
+              label="Accepted"
+              value={stats.accepted}
+              tone="blue"
+              icon={<UserCheck className="h-4 w-4" />}
+            />
+            <StatCard
+              label="In Progress"
+              value={stats.inProgress}
+              tone="cyan"
+              icon={<PlayCircle className="h-4 w-4" />}
+            />
+            <StatCard
+              label="Completed"
+              value={stats.completed}
+              tone="emerald"
+              icon={<CheckCircle2 className="h-4 w-4" />}
+            />
+          </section>
+
+          {/* Main grid */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Invite + Table */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Invite Card */}
+              <section className="group relative rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/70 to-slate-900/30 backdrop-blur-xl p-6 shadow-2xl shadow-black/20 overflow-hidden">
+                <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-blue-500/10 ring-1 ring-blue-400/30 flex items-center justify-center">
+                      <UserPlus className="h-4.5 w-4.5 text-blue-300" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-white tracking-tight">
+                        Invite Candidates
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        Paste one or more emails separated by commas, spaces, or new lines.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-slate-800/60 ring-1 ring-slate-700/60 px-2.5 py-1 text-[11px] font-medium text-slate-300">
+                    <Mail className="h-3 w-3" />
+                    Bulk invite
+                  </span>
+                </div>
+
+                <form onSubmit={handleBulkInvite} className="space-y-4">
+                  <div className="relative">
+                    <label
+                      htmlFor="emails"
+                      className="block text-[11px] font-medium uppercase tracking-wider text-slate-500 mb-2"
+                    >
+                      Candidate emails
+                    </label>
+                    <div className="relative rounded-xl ring-1 ring-slate-800 bg-slate-950/60 focus-within:ring-2 focus-within:ring-blue-500/40 focus-within:border-blue-500/50 transition-all">
+                      <textarea
+                        id="emails"
+                        placeholder={'candidate1@gmail.com, candidate2@gmail.com\ncandidate3@gmail.com'}
+                        value={emails}
+                        onChange={(e) => setEmails(e.target.value)}
+                        required
+                        disabled={inviteLoading}
+                        rows={5}
+                        className="w-full resize-none rounded-xl bg-transparent px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 outline-none disabled:opacity-50 font-mono"
+                      />
+                    </div>
+                  </div>
+                  {/* Credit estimate panel */}
+                  {creditBalance !== null && (
+                    <div className={`rounded-xl border px-4 py-3 text-sm flex items-start gap-3 ${
+                      emails.trim() === ''
+                        ? 'border-slate-700/60 bg-slate-900/40'
+                        : estimateResult?.enoughCredits
+                          ? 'border-emerald-400/30 bg-emerald-500/5'
+                          : 'border-red-400/30 bg-red-500/8'
+                    }`}>
+                      <Coins className={`h-4 w-4 mt-0.5 shrink-0 ${
+                        emails.trim() === '' ? 'text-slate-500'
+                          : estimateResult?.enoughCredits ? 'text-emerald-400'
+                          : 'text-red-400'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-slate-300 font-medium">
+                            🪙 Available: <span className="text-white font-bold">{creditBalance} credits</span>
+                          </span>
+                          {estimateResult && emails.trim() && (
+                            <span className={`font-semibold ${estimateResult.enoughCredits ? 'text-emerald-300' : 'text-red-300'}`}>
+                              {estimateResult.enoughCredits ? '✓ Sufficient' : '✗ Insufficient'}
                             </span>
-                            {inv.attemptStatus === 'COMPLETED' && inv.attemptPercentage !== null && inv.attemptPercentage !== undefined && (
-                              <span style={{ fontSize: '0.75rem', color: inv.attemptPercentage >= 70 ? '#34d399' : inv.attemptPercentage >= 40 ? '#fbbf24' : '#f87171', fontWeight: 700 }}>
-                                Score: {inv.attemptPercentage.toFixed(1)}%
-                              </span>
-                            )}
-                            {inv.submittedAt && (
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                {new Date(inv.submittedAt).toLocaleString()}
+                          )}
+                        </div>
+                        {estimateResult && emails.trim() && (
+                          <div className="mt-1 text-slate-400 text-xs">
+                            This assignment will consume{' '}
+                            <span className="text-white font-semibold">{estimateResult.requiredCredits} credits</span>
+                            {' '}· Remaining: <span className={estimateResult.remainingBalance < 0 ? 'text-red-300 font-semibold' : 'text-slate-300'}>{estimateResult.remainingBalance}</span>
+                            {!estimateResult.enoughCredits && (
+                              <span className="block mt-1 text-red-300">
+                                Need {estimateResult.requiredCredits - estimateResult.currentBalance} more credits.{' '}
+                                <a href="/admin/credits/packs" className="underline text-red-200 hover:text-white">Buy Credits →</a>
                               </span>
                             )}
                           </div>
-                        ) : (
-                          <span className="badge badge-gray">Not Started</span>
                         )}
-                      </td>
-                      <td className="text-muted">
-                        {new Date(inv.invitedAt).toLocaleString()}
-                      </td>
-                      <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {inv.attemptId && (
-                          <button
-                            onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
-                            className="btn secondary sm"
-                            style={{ fontSize: '0.75rem' }}
-                          >
-                            📊 Report
-                          </button>
+                        {emails.trim() === '' && (
+                          <div className="mt-0.5 text-slate-500 text-xs">Enter emails above to see credit estimate.</div>
                         )}
-                        <button
-                          onClick={() => handleRemove(inv.id)}
-                          className="btn danger sm"
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                      <Zap className="h-3.5 w-3.5 text-blue-400" />
+                      Each candidate receives an email with a unique access link.
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={inviteLoading || !emails.trim() || (estimateResult !== null && !estimateResult.enoughCredits)}
+                      className="group/btn relative inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all"
+                    >
+                      {inviteLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Sending…
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform" />
+                          Send invitations
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              {/* Candidates Table */}
+              <section className="rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/70 to-slate-900/30 backdrop-blur-xl shadow-2xl shadow-black/20 overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 border-b border-slate-800/60">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-slate-800/60 ring-1 ring-slate-700/60 flex items-center justify-center">
+                      <Inbox className="h-4 w-4 text-slate-300" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+                        Invited Candidates
+                        <span className="inline-flex items-center rounded-md bg-slate-800/80 ring-1 ring-slate-700/60 px-1.5 py-0.5 text-[11px] font-medium text-slate-300">
+                          {invitations.length}
+                        </span>
+                      </h2>
+                      <p className="text-xs text-slate-500">Manage candidate access and track progress.</p>
+                    </div>
+                  </div>
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search candidates…"
+                      className="w-full rounded-xl ring-1 ring-slate-800 bg-slate-950/60 pl-9 pr-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {invitations.length === 0 ? (
+                  <div className="px-6 py-20 text-center">
+                    <div className="mx-auto h-14 w-14 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/40 ring-1 ring-slate-700/40 flex items-center justify-center mb-4">
+                      <Users className="h-6 w-6 text-slate-500" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-200">No candidates invited yet</h3>
+                    <p className="mt-1 text-xs text-slate-500 max-w-xs mx-auto">
+                      Use the form above to invite your first candidate. They'll receive an email instantly.
+                    </p>
+                  </div>
+                ) : filteredInvitations.length === 0 ? (
+                  <div className="px-6 py-16 text-center">
+                    <div className="mx-auto h-10 w-10 rounded-xl bg-slate-800/60 flex items-center justify-center mb-3">
+                      <Search className="h-4 w-4 text-slate-500" />
+                    </div>
+                    <p className="text-sm text-slate-400">No candidates match your search.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-[11px] uppercase tracking-wider text-slate-500 bg-slate-950/50 border-b border-slate-800/60">
+                          <th className="px-5 py-3 font-medium">Candidate</th>
+                          <th className="px-5 py-3 font-medium">Account</th>
+                          <th className="px-5 py-3 font-medium">Invite</th>
+                          <th className="px-5 py-3 font-medium">Attempt</th>
+                          <th className="px-5 py-3 font-medium">Invited</th>
+                          <th className="px-5 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/50">
+                        {filteredInvitations.map((inv) => {
+                          const initial = (inv.candidateEmail || '?').charAt(0).toUpperCase();
+                          return (
+                            <tr
+                              key={inv.id}
+                              className="group hover:bg-slate-800/20 transition-colors"
+                            >
+                              <td className="px-5 py-4">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-blue-500/20 via-slate-700 to-slate-900 ring-1 ring-slate-700/60 flex items-center justify-center text-xs font-semibold text-white shadow-inner">
+                                    {initial}
+                                  </div>
+                                  <span className="truncate font-medium text-slate-100">
+                                    {inv.candidateEmail}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-5 py-4">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${
+                                    inv.userId
+                                      ? 'bg-blue-500/10 text-blue-300 ring-blue-400/30'
+                                      : 'bg-slate-500/10 text-slate-400 ring-slate-500/30'
+                                  }`}
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${
+                                      inv.userId ? 'bg-blue-400 animate-pulse' : 'bg-slate-500'
+                                    }`}
+                                  />
+                                  {inv.userId ? 'Registered' : 'Guest'}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4">
+                                <span
+                                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${statusBadge(inv.status)}`}
+                                >
+                                  {inv.status}
+                                </span>
+                              </td>
+                              <td className="px-5 py-4">
+                                {inv.attemptStatus ? (
+                                  <div className="flex flex-col gap-1">
+                                    <span
+                                      className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${
+                                        inv.attemptStatus === 'COMPLETED'
+                                          ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30'
+                                          : inv.attemptStatus === 'IN_PROGRESS'
+                                            ? 'bg-cyan-500/10 text-cyan-300 ring-cyan-400/30'
+                                            : 'bg-slate-500/10 text-slate-400 ring-slate-500/30'
+                                      }`}
+                                    >
+                                      {inv.attemptStatus === 'COMPLETED'
+                                        ? 'Completed'
+                                        : inv.attemptStatus === 'IN_PROGRESS'
+                                          ? 'In Progress'
+                                          : inv.attemptStatus}
+                                    </span>
+                                    {inv.attemptStatus === 'COMPLETED' &&
+                                      inv.attemptPercentage !== null &&
+                                      inv.attemptPercentage !== undefined && (
+                                        <span
+                                          className={`text-xs font-semibold tabular-nums ${
+                                            inv.attemptPercentage >= 70
+                                              ? 'text-emerald-400'
+                                              : inv.attemptPercentage >= 40
+                                                ? 'text-amber-400'
+                                                : 'text-red-400'
+                                          }`}
+                                        >
+                                          {inv.attemptPercentage.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    {inv.submittedAt && (
+                                      <span className="text-[10px] text-slate-500">
+                                        {new Date(inv.submittedAt).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2.5 py-1 text-[11px] font-medium text-slate-400 ring-1 ring-inset ring-slate-500/30">
+                                    Not started
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 text-slate-400 whitespace-nowrap text-xs tabular-nums">
+                                {new Date(inv.invitedAt).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                                <div className="text-[10px] text-slate-600">
+                                  {new Date(inv.invitedAt).toLocaleTimeString(undefined, {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </td>
+                              <td className="px-5 py-4">
+                                <div className="flex items-center justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                                  {inv.attemptId && (
+                                    <button
+                                      onClick={() =>
+                                        router.push(`/admin/coding-tests/${assessmentId}/results`)
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-1.5 text-[11px] font-medium text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-700 transition-all"
+                                    >
+                                      <BarChart3 className="h-3 w-3" />
+                                      Report
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleRemove(inv.id)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[11px] font-medium text-red-300 hover:bg-red-500/15 hover:border-red-500/40 transition-all"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* Right: Sidebar */}
+            <aside className="lg:col-span-1">
+              <div className="lg:sticky lg:top-6 space-y-4">
+                <div className="relative rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/70 to-slate-900/30 backdrop-blur-xl p-6 shadow-2xl shadow-black/20 overflow-hidden">
+                  <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+                  <div className="flex items-center gap-2.5 mb-1">
+                    <div className="h-8 w-8 rounded-lg bg-cyan-500/10 ring-1 ring-cyan-400/30 flex items-center justify-center">
+                      <Activity className="h-4 w-4 text-cyan-300" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-white tracking-tight">
+                      Assessment Summary
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 ml-10.5">Key information about this test.</p>
+
+                  <dl className="mt-5 space-y-3">
+                    <SummaryRow
+                      icon={<Hash className="h-3.5 w-3.5" />}
+                      label="Title"
+                      value={assessment?.title || '—'}
+                    />
+                    <SummaryRow
+                      icon={<Clock className="h-3.5 w-3.5" />}
+                      label="Duration"
+                      value={`${assessment?.duration ?? 0} min`}
+                    />
+                    <div className="flex items-center justify-between gap-3 py-1.5">
+                      <dt className="text-xs text-slate-400 flex items-center gap-2">
+                        <Shield className="h-3.5 w-3.5 text-slate-500" />
+                        Security Level
+                      </dt>
+                      <dd>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${securityBadge(assessment?.securityLevel)}`}
                         >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </section>
-      </div>
+                          {assessment?.securityLevel || '—'}
+                        </span>
+                      </dd>
+                    </div>
+                    <SummaryRow
+                      icon={<Code className="h-3.5 w-3.5" />}
+                      label="Questions"
+                      value={`${assessment?.questions.length || 0}`}
+                    />
+                    <SummaryRow
+                      icon={<Users className="h-3.5 w-3.5" />}
+                      label="Invited"
+                      value={`${invitations.length}`}
+                    />
+                    <div className="flex items-center justify-between gap-3 py-1.5">
+                      <dt className="text-xs text-slate-400 flex items-center gap-2">
+                        <Activity className="h-3.5 w-3.5 text-slate-500" />
+                        Status
+                      </dt>
+                      <dd>
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${
+                            assessment?.isActive
+                              ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30'
+                              : 'bg-slate-500/10 text-slate-400 ring-slate-500/30'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              assessment?.isActive
+                                ? 'bg-emerald-400 animate-pulse'
+                                : 'bg-slate-500'
+                            }`}
+                          />
+                          {assessment?.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
 
-      {/* Sticky Sidebar */}
-      <aside className="sidebar">
-        <div className="card sticky-card">
-          <h3 className="sidebar-title">Assessment Summary</h3>
-          <div className="summary-list">
-            <div className="summary-item">
-              <span className="label">Title</span>
-              <span className="value">{assessment?.title}</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Duration</span>
-              <span className="value">{assessment?.duration} min</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Security Level</span>
-              <span className="value">{assessment?.securityLevel}</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Question Count</span>
-              <span className="value">{assessment?.questions.length || 0}</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Invited Candidates</span>
-              <span className="value">{invitations.length}</span>
-            </div>
-          </div>
+                  <div className="mt-6 pt-5 border-t border-slate-800/60 space-y-2">
+                    <button
+                      onClick={() => router.push(`/admin/coding-tests/${assessmentId}/results`)}
+                      className="group w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:from-blue-400 hover:to-blue-500 transition-all"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      View Results
+                      <ArrowUpRight className="h-3.5 w-3.5 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </button>
+                    <button
+                      onClick={() => router.push('/tests')}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white hover:border-slate-700 transition-all"
+                    >
+                      Continue
+                    </button>
+                  </div>
+                </div>
 
-          <div className="sidebar-footer">
-            <button onClick={() => router.push('/tests')} className="btn primary full-width">
-              Continue
-            </button>
+                <div className="relative rounded-2xl border border-blue-400/20 bg-gradient-to-br from-blue-500/10 via-slate-900/60 to-slate-900/20 backdrop-blur-xl p-5 overflow-hidden">
+                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-blue-500/10 blur-2xl" />
+                  <div className="relative flex items-start gap-3">
+                    <div className="h-9 w-9 shrink-0 rounded-xl bg-blue-500/15 ring-1 ring-blue-400/30 flex items-center justify-center">
+                      <Info className="h-4.5 w-4.5 text-blue-300" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-semibold text-white tracking-tight flex items-center gap-1.5">
+                        Pro tip
+                        <Sparkles className="h-3 w-3 text-blue-300" />
+                      </h4>
+                      <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                        Invite multiple candidates at once by pasting a list of emails — one per line
+                        or separated by commas. Saves time on large hiring rounds.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
-      </aside>
-
-      <style jsx global>{styles}</style>
-    </div>
+      </div>
     </>
   );
 }
 
-// --- Global Styles (SaaS Dark Theme) ---
-const styles = `
-  :root {
-    --bg-base: #000000;
-    --bg-surface: #0a0a0a;
-    --bg-card: #111111;
-    --bg-hover: #1a1a1a;
-    
-    --border-color: #222222;
-    --border-hover: #333333;
-    
-    --text-primary: #ededed;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    
-    --accent-blue: #0070f3;
-    --accent-blue-hover: #0051b3;
-    --accent-red: #ef4444;
-    --accent-red-hover: #dc2626;
-    --accent-green: #10b981;
-    --accent-green-bg: rgba(16, 185, 129, 0.1);
-    
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  }
-
-  body {
-    background-color: var(--bg-base);
-    color: var(--text-primary);
-    font-family: var(--font-sans);
-    margin: 0;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  /* Layout */
-  .layout-container {
-    display: flex;
-    flex-direction: column;
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 2rem;
-    gap: 2rem;
-    position: relative;
-  }
-
-  @media (min-width: 1024px) {
-    .layout-container {
-      flex-direction: row;
-      align-items: flex-start;
-    }
-  }
-
-  .main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    min-width: 0;
-  }
-
-  .sidebar {
-    width: 100%;
-  }
-
-  @media (min-width: 1024px) {
-    .sidebar {
-      width: 320px;
-      position: sticky;
-      top: 2rem;
-    }
-  }
-
-  /* Typography */
-  h1, h2, h3 {
-    margin: 0;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  p {
-    margin: 0;
-  }
-
-  .text-white { color: var(--text-primary); }
-  .text-muted { color: var(--text-secondary); }
-  .font-medium { font-weight: 500; }
-
-  /* Header */
-  .page-header {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  @media (min-width: 768px) {
-    .page-header {
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: flex-end;
-    }
-  }
-
-  .page-header h1 {
-    font-size: 1.5rem;
-    color: var(--text-primary);
-  }
-
-  .subtitle {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    margin-top: 0.5rem;
-  }
-
-  /* Cards */
-  .card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-card);
-  }
-
-  .card-title {
-    font-size: 1.125rem;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-  }
-
-  /* Summary Grid */
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .stat-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .stat-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-  }
-
-  .stat-value {
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
-
-  /* Form Elements */
-  .invite-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .full-width-group {
-    width: 100%;
-  }
-
-  .input-group label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-  }
-
-  .input-field {
-    background: var(--bg-base);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .input-field:focus {
-    border-color: var(--accent-blue);
-  }
-
-  .textarea-field {
-    resize: vertical;
-    min-height: 120px;
-    font-family: inherit;
-    line-height: 1.5;
-  }
-
-  .form-actions {
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  /* Table */
-  .table-card {
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 0;
-  }
-
-  .count-badge {
-    background: var(--bg-hover);
-    color: var(--text-secondary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 99px;
-    font-size: 0.875rem;
-    border: 1px solid var(--border-color);
-  }
-
-  .table-responsive {
-    overflow-x: auto;
-  }
-
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  .data-table th, .data-table td {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    white-space: nowrap;
-  }
-
-  .data-table th {
-    color: var(--text-muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    background: var(--bg-surface);
-  }
-
-  .data-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .data-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  .empty-state {
-    padding: 3rem;
-    text-align: center;
-    color: var(--text-muted);
-  }
-
-  /* Badges */
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.6rem;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-  }
-
-  .security-badge {
-    background: rgba(161, 161, 170, 0.1);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-    align-self: flex-start;
-  }
-
-  .status-pending {
-    background: rgba(245, 158, 11, 0.1);
-    color: #fcd34d;
-    border: 1px solid rgba(245, 158, 11, 0.2);
-  }
-
-  .status-completed {
-    background: rgba(16, 185, 129, 0.1);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-
-  .status-in-progress {
-    background: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  .badge-blue {
-    background: rgba(59, 130, 246, 0.1);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-  }
-
-  .badge-gray {
-    background: rgba(161, 161, 170, 0.1);
-    color: var(--text-muted);
-    border: 1px solid var(--border-color);
-  }
-
-  /* Buttons */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-  }
-
-  .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .btn.primary {
-    background: var(--text-primary);
-    color: var(--bg-base);
-  }
-
-  .btn.primary:hover:not(:disabled) {
-    background: #d4d4d8;
-  }
-
-  .btn.secondary {
-    background: var(--bg-surface);
-    color: var(--text-primary);
-  }
-
-  .btn.outline {
-    background: transparent;
-    border-color: var(--border-color);
-  }
-
-  .btn.outline:hover:not(:disabled) {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
-  }
-
-  .btn.danger {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--accent-red);
-    border-color: rgba(239, 68, 68, 0.2);
-  }
-
-  .btn.danger:hover {
-    background: var(--accent-red);
-    color: #fff;
-  }
-
-  .btn.sm {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-
-  .full-width {
-    width: 100%;
-  }
-
-  /* Sidebar */
-  .sticky-card {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-  }
-
-  .sidebar-title {
-    font-size: 1rem;
-    color: var(--text-primary);
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid var(--border-color);
-  }
-
-  .summary-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    flex-grow: 1;
-  }
-
-  .summary-item {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.875rem;
-  }
-
-  .summary-item .label {
-    color: var(--text-secondary);
-  }
-
-  .summary-item .value {
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-
-  .sidebar-footer {
-    margin-top: auto;
-    padding-top: 1rem;
-  }
-
-  /* Toasts / Banners */
-  .toast-container {
-    position: fixed;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 50;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .banner {
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
-    font-weight: 500;
-    box-shadow: var(--shadow-card);
-    animation: slideDown 0.3s ease-out;
-  }
-
-  .success-banner {
-    background: var(--accent-green-bg);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: var(--accent-green);
-  }
-
-  .error-banner {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: var(--accent-red);
-  }
-
-  .error-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 60vh;
-    gap: 1.5rem;
-    text-align: center;
-  }
-
-  @keyframes slideDown {
-    from { transform: translateY(-100%); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
-
-  /* Skeletons */
-  .skeleton-wrapper {
-    gap: 2rem;
-  }
-
-  .skeleton-box {
-    background: #1a1a1a;
-    border-radius: var(--radius-md);
-    animation: pulse 2s infinite ease-in-out;
-  }
-
-  .title-skeleton {
-    height: 48px;
-    width: 60%;
-  }
-
-  .skeleton-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-
-  .card-skeleton {
-    height: 100px;
-  }
-
-  .big-card-skeleton {
-    height: 300px;
-  }
-
-  .sidebar-skeleton {
-    height: 400px;
-  }
-
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.4; }
-    100% { opacity: 1; }
-  }
-`;
+// --- Local Presentational Components ---
+
+function StatCard({
+  label,
+  value,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ReactNode;
+  tone: 'slate' | 'amber' | 'blue' | 'cyan' | 'emerald';
+}) {
+  const tones: Record<string, { ring: string; bg: string; text: string; glow: string }> = {
+    slate: {
+      ring: 'ring-slate-500/30',
+      bg: 'bg-slate-500/10',
+      text: 'text-slate-300',
+      glow: 'from-slate-500/5',
+    },
+    amber: {
+      ring: 'ring-amber-400/30',
+      bg: 'bg-amber-500/10',
+      text: 'text-amber-300',
+      glow: 'from-amber-500/5',
+    },
+    blue: {
+      ring: 'ring-blue-400/30',
+      bg: 'bg-blue-500/10',
+      text: 'text-blue-300',
+      glow: 'from-blue-500/5',
+    },
+    cyan: {
+      ring: 'ring-cyan-400/30',
+      bg: 'bg-cyan-500/10',
+      text: 'text-cyan-300',
+      glow: 'from-cyan-500/5',
+    },
+    emerald: {
+      ring: 'ring-emerald-400/30',
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-300',
+      glow: 'from-emerald-500/5',
+    },
+  };
+  const t = tones[tone];
+  return (
+    <div
+      className={`group relative rounded-2xl border border-slate-800/80 bg-gradient-to-br ${t.glow} via-slate-900/60 to-slate-900/30 backdrop-blur-xl p-4 shadow-lg shadow-black/10 hover:border-slate-700/80 hover:-translate-y-0.5 transition-all duration-200 overflow-hidden`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">
+          {label}
+        </span>
+        <div
+          className={`h-7 w-7 rounded-lg flex items-center justify-center ring-1 ring-inset ${t.ring} ${t.bg} ${t.text}`}
+        >
+          {icon}
+        </div>
+      </div>
+      <div className="mt-3 text-3xl font-semibold tracking-tight text-white tabular-nums">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <dt className="text-xs text-slate-400 flex items-center gap-2">
+        {icon && <span className="text-slate-500">{icon}</span>}
+        {label}
+      </dt>
+      <dd className="text-xs font-medium text-slate-100 text-right truncate max-w-[60%]">{value}</dd>
+    </div>
+  );
+}

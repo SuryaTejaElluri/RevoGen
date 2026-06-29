@@ -1,11 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InviteCandidateDto } from './dto/invite-candidate.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCodingTestDto } from './dto/create-coding-test.dto';
+import { CreditsService } from '../credits/credits.service';
+import { CREDIT_COST } from '../common/constants/credits.constants';
 
 @Injectable()
 export class CodingTestsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private creditsService: CreditsService,
+  ) {}
 
   private readonly EVENT_WEIGHTS: Record<string, number> = {
     TAB_SWITCH: 10,
@@ -110,6 +115,7 @@ export class CodingTestsService {
   }
 
   async inviteCandidate(codingTestId: string, dto: InviteCandidateDto, userId: string) {
+    // ── 1. Load test (outside tx — read-only, no side effects) ──────────────────
     const test = await this.prisma.codingTest.findFirst({
       where: { id: codingTestId, createdById: userId },
     });
@@ -120,7 +126,7 @@ export class CodingTestsService {
 
     const limit = this.INVITE_LIMITS[test.securityLevel] ?? 4;
 
-    // Check if already invited — re-inviting same email doesn't consume a slot
+    // ── 2. Check duplicate / slot availability (outside tx) ─────────────────────
     const alreadyInvited = await this.prisma.codingInvitation.findUnique({
       where: {
         codingTestId_candidateEmail: {
@@ -135,7 +141,7 @@ export class CodingTestsService {
     });
 
     if (!alreadyInvited && currentCount >= limit) {
-      throw new Error(
+      throw new BadRequestException(
         `Invitation limit reached. Maximum ${limit} candidates allowed for ${test.securityLevel} security.`,
       );
     }
@@ -144,22 +150,64 @@ export class CodingTestsService {
       where: { email: dto.candidateEmail },
     });
 
-    const invitation = await this.prisma.codingInvitation.upsert({
-      where: {
-        codingTestId_candidateEmail: {
+    // ── 3. Calculate credits (only for NEW invitations) ──────────────────────────
+    const isNew = !alreadyInvited;
+    const creditsPerCandidate = CREDIT_COST[test.securityLevel] ?? 5;
+    const requiredCredits = isNew ? creditsPerCandidate : 0;
+
+    // Pre-flight balance check (before entering tx) for a clean error response
+    if (isNew) {
+      const wallet = await this.prisma.adminCredits.findUnique({ where: { userId } });
+      const available = wallet?.balance ?? 0;
+
+      if (available < requiredCredits) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Insufficient Revo Credits.',
+          requiredCredits,
+          availableCredits: available,
+        });
+      }
+    }
+
+    // ── 4. Atomic transaction: deduct + create invitation ────────────────────────
+    let remainingCredits: number = 0;
+
+    const invitation = await this.prisma.$transaction(async (tx) => {
+      // Deduct credits inside the same tx so both roll back on failure
+      if (isNew) {
+        const result = await this.creditsService.deductCreditsWithinTx(
+          tx,
+          userId,
+          requiredCredits,
+          `Coding Test Assignment (${test.securityLevel})`,
+          codingTestId,
+        );
+        remainingCredits = result.newBalance;
+      } else {
+        // Re-inivite: no deduction — just read current balance
+        const wallet = await tx.adminCredits.findUnique({ where: { userId } });
+        remainingCredits = wallet?.balance ?? 0;
+      }
+
+      // Create / update invitation
+      return tx.codingInvitation.upsert({
+        where: {
+          codingTestId_candidateEmail: {
+            codingTestId,
+            candidateEmail: dto.candidateEmail,
+          },
+        },
+        update: {},
+        create: {
           codingTestId,
           candidateEmail: dto.candidateEmail,
+          userId: existingUser?.id,
         },
-      },
-      update: {},
-      create: {
-        codingTestId,
-        candidateEmail: dto.candidateEmail,
-        userId: existingUser?.id,
-      },
+      });
     });
 
-    const newCount = alreadyInvited ? currentCount : currentCount + 1;
+    const newCount = isNew ? currentCount + 1 : currentCount;
 
     return {
       success: true,
@@ -167,6 +215,8 @@ export class CodingTestsService {
       currentCount: newCount,
       limit,
       remaining: limit - newCount,
+      creditsUsed: requiredCredits,
+      remainingCredits,
     };
   }
 

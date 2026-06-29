@@ -91,6 +91,12 @@ getCandidateProfile(
 getLeaderboard() {
   return this.usersService.getLeaderboard();
 }
+
+@Get('my-leaderboard')
+@UseGuards(AuthGuard('jwt'), AdminGuard)
+getMyLeaderboard(@Req() req) {
+  return this.usersService.getLeaderboardForAdmin(req.user.userId);
+}
 @Get('super-test')
 @UseGuards(
   AuthGuard('jwt'),

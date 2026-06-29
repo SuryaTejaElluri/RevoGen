@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, ReactNode, CSSProperties } from 'react';
 import Link from 'next/link';
-import AdminSidebar, { Theme } from '@/components/AdminSidebar';
+import AdminSidebar, { Theme } from '@/components/AdminSidebar' 
+
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -194,7 +195,7 @@ export default function AdminDashboard() {
     Promise.all([
       fetch('http://localhost:3000/tests/dashboard/stats', { headers: h }).then(r => r.json()),
       fetch('http://localhost:3000/coding-tests/dashboard/stats', { headers: h }).then(r => r.json()),
-      fetch('http://localhost:3000/users/leaderboard', { headers: h }).then(r => r.json()),
+      fetch('http://localhost:3000/users/my-leaderboard', { headers: h }).then(r => r.json()),
     ]).then(([mcqData, codingData, lbData]) => {
       setMcq(mcqData);
       setCoding(codingData);
@@ -246,6 +247,7 @@ export default function AdminDashboard() {
     { href: '/admin/tests/new',            icon: SI.doc,    title: 'Create MCQ Test',    accent: C.accent   },
     { href: '/admin/coding-tests/create',  icon: SI.code,   title: 'Create Coding Test', accent: C.purple   },
     { href: '/admin/tests',                icon: SI.grid,   title: 'All Assessments',    accent: C.accent2  },
+    { href: '/admin/questions',            icon: SI.bars,   title: 'Question Bank',      accent: C.warning  },
   ];
 
   return (
@@ -397,13 +399,12 @@ export default function AdminDashboard() {
                 <div className="section">
                   <div className="section-head">
                     <div className="section-title" style={{ margin: 0 }}>Top Candidates</div>
-                    <Link href="/admin/users" className="link-accent">View all →</Link>
                   </div>
                   {leaderboard.length === 0 ? (
-                    <div className="empty-state">No candidates yet.</div>
+                    <div className="empty-state">No invited candidates have attempted a test yet.</div>
                   ) : (
                     leaderboard.map((c, i) => (
-                      <Link key={c.id} href={`/admin/users/${c.id}`} className="lb-row">
+                      <div key={c.id} className="lb-row">
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div className="lb-rank" style={{
                             background: i === 0 ? 'linear-gradient(135deg,#f5a524,#fbbf24)' : i === 1 ? 'linear-gradient(135deg,#94a3b8,#cbd5e1)' : i === 2 ? 'linear-gradient(135deg,#b45309,#d97706)' : 'var(--surface-2)',
@@ -414,10 +415,10 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ color: C.success, fontWeight: 800, fontSize: 18 }}>{c.rankingScore}</div>
-                          <div className="stat-sub" style={{ marginTop: 0 }}>Ranking Score</div>
+                          <div style={{ color: C.success, fontWeight: 800, fontSize: 18 }}>{c.rankingScore}%</div>
+                          <div className="stat-sub" style={{ marginTop: 0 }}>Avg Test Score</div>
                         </div>
-                      </Link>
+                      </div>
                     ))
                   )}
                 </div>
@@ -556,8 +557,7 @@ function GlobalStyle() {
       .activity-tag { font-size: 11px; background: var(--surface-2); color: var(--muted); border-radius: 4px; padding: 1px 6px; }
       .activity-time { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
 
-      .lb-row { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; text-decoration: none; transition: border-color .2s; margin-bottom: 10px; }
-      .lb-row:hover { border-color: var(--accent); }
+      .lb-row { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
       .lb-rank { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; }
       .lb-name { color: var(--text); font-weight: 600; font-size: 14px; }
       .lb-email { color: var(--muted); font-size: 12px; }
