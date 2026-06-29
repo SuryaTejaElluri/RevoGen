@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function CandidateProfilePage() {
   const params = useParams();
@@ -27,7 +28,7 @@ export default function CandidateProfilePage() {
 
         const response =
           await fetch(
-            `http://localhost:3000/users/${id}/profile`,
+            `${API_BASE_URL}/users/${id}/profile`,
             {
               headers: {
                 Authorization:

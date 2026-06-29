@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 
 interface Test {
   id: string;
@@ -16,7 +17,7 @@ export default function TestsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    fetch('http://localhost:3000/tests/assigned', {
+    fetch(`${API_BASE_URL}/tests/assigned`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

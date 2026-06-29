@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -24,7 +25,7 @@ export default function AdminQuestionsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
-    fetch('http://localhost:3000/question-bank', {
+    fetch(`${API_BASE_URL}/question-bank`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())

@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
+import { API_BASE_URL } from '@/lib/api';
 
-const API = 'http://localhost:3000';
+
 const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` });
 
 interface Transaction {
@@ -64,7 +65,7 @@ export default function HistoryPage() {
   const load = useCallback(async (p: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/credits/history?page=${p}&limit=20`, { headers: h() });
+      const res = await fetch(`${API_BASE_URL}/credits/history?page=${p}&limit=20`, { headers: h() });
       if (res.ok) {
         const d = await res.json();
         setItems(d.items ?? []);

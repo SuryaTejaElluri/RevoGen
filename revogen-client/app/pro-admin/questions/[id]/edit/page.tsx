@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 
 import ProAdminNavbar from '@/components/ProAdminNavbar';
 
+import { API_BASE_URL } from '@/lib/api';
 
 
 export default function EditQuestionPage() {
@@ -52,7 +53,7 @@ export default function EditQuestionPage() {
 
       const response =
         await fetch(
-          `http://localhost:3000/question-bank/${id}`,
+          `${API_BASE_URL}/question-bank/${id}`,
           {
             headers: {
               Authorization:
@@ -105,7 +106,7 @@ export default function EditQuestionPage() {
 
         const response =
           await fetch(
-            `http://localhost:3000/question-bank/${id}`,
+            `${API_BASE_URL}/question-bank/${id}`,
             {
               method: 'PATCH',
 

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
+import { API_BASE_URL } from '@/lib/api';
 
-const API = 'http://localhost:3000';
 const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}`, 'Content-Type': 'application/json' });
 
 interface EstimateResult {
@@ -37,7 +37,7 @@ export default function EstimatePage() {
   const estimate = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/credits/estimate`, {
+      const res = await fetch(`${API_BASE_URL}/credits/estimate`, {
         method: 'POST',
         headers: h(),
         body: JSON.stringify({ securityLevel, candidateCount }),

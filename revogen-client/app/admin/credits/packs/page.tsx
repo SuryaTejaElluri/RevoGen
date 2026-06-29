@@ -1,10 +1,11 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
-const API = 'http://localhost:3000';
+
 const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` });
 
 interface Pack {
@@ -47,7 +48,7 @@ export default function PacksPage() {
   };
 
   useEffect(() => {
-    fetch(`${API}/credits/packs`, { headers: h() })
+    fetch(`${API_BASE_URL}/credits/packs`, { headers: h() })
       .then(r => r.json())
       .then(d => setPacks(Array.isArray(d) ? d : []))
       .catch(console.error)

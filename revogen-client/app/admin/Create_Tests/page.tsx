@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import Link from 'next/link';
 import AdminNavbar from '@/components/AdminNavbar';

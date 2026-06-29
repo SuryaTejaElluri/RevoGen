@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -61,7 +62,7 @@ export default function NewQuestionPage() {
 
         const response =
           await fetch(
-            'http://localhost:3000/question-bank',
+            `${API_BASE_URL}/question-bank`,
             {
               method: 'POST',
 

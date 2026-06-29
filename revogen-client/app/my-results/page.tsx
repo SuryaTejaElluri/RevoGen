@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
+import { API_BASE_URL } from '@/lib/api';
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 const IconClipboard = () => (
@@ -913,7 +914,7 @@ export default function MyResultsPage() {
   const loadResults = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:3000/tests/my-attempts', {
+      const response = await fetch(`${API_BASE_URL}/tests/my-attempts`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();

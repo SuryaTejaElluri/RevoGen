@@ -1,7 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 
 import AdminNavbar from '@/components/AdminNavbar';
 
@@ -34,7 +35,7 @@ const loadModules = async () => {
 
     const response =
       await fetch(
-        `http://localhost:3000/tests/${testId}/modules`,
+        `${API_BASE_URL}/tests/${testId}/modules`,
         {
           headers: {
             Authorization:
@@ -66,7 +67,7 @@ const loadModules = async () => {
 
         const response =
           await fetch(
-            'http://localhost:3000/question-bank',
+            `${API_BASE_URL}/question-bank`,
             {
               headers: {
                 Authorization:
@@ -153,7 +154,7 @@ return;
 
         for (const questionId of selectedQuestions) {
           await fetch(
-            `http://localhost:3000/tests/${testId}/questions-bank/${questionId}`,
+            `${API_BASE_URL}/tests/${testId}/questions-bank/${questionId}`,
             {
               method: 'POST',
 

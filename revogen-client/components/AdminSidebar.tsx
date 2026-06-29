@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
+
 
 export type Theme = 'dark' | 'light';
 

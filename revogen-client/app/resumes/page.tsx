@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Navbar from '../../components/Navbar';
+import { API_BASE_URL } from '@/lib/api';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -255,7 +256,7 @@ export default function ResumePage() {
 
   const loadResumes = async () => {
     const token = localStorage.getItem('access_token');
-    const res = await fetch('http://localhost:3000/resumes', {
+    const res = await fetch(`${API_BASE_URL}/resumes`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json();
@@ -271,7 +272,7 @@ export default function ResumePage() {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('resume', file);
-    const res = await fetch('http://localhost:3000/resumes/upload', {
+    const res = await fetch(`${API_BASE_URL}/resumes/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
@@ -285,7 +286,7 @@ export default function ResumePage() {
   const analyzeResume = async (id: string) => {
     setAnalyzingId(id);
     const token = localStorage.getItem('access_token');
-    const res = await fetch(`http://localhost:3000/resumes/${id}/analyze`, {
+    const res = await fetch(`${API_BASE_URL}/resumes/${id}/analyze`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });

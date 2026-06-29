@@ -1,4 +1,5 @@
-'use client';
+﻿'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -20,7 +21,7 @@ export default function ResultsRouter() {
 
       const response =
         await fetch(
-          `http://localhost:3000/tests/${params.id}`,
+          `${API_BASE_URL}/tests/${params.id}`,
           {
             headers: {
               Authorization:

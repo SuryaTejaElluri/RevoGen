@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import ProAdminNavbar from '@/components/ProAdminNavbar';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ProAdminUsersPage() {
   const [users, setUsers] =
@@ -23,7 +24,7 @@ export default function ProAdminUsersPage() {
 
       const response =
         await fetch(
-          'http://localhost:3000/users',
+          `${API_BASE_URL}/users`,
           {
             headers: {
               Authorization:
@@ -58,7 +59,7 @@ export default function ProAdminUsersPage() {
       );
 
     await fetch(
-      `http://localhost:3000/users/${userId}/role`,
+      `${API_BASE_URL}/users/${userId}/role`,
       {
         method: 'PATCH',
 
@@ -101,7 +102,7 @@ export default function ProAdminUsersPage() {
       );
 
     await fetch(
-      `http://localhost:3000/users/${userId}`,
+      `${API_BASE_URL}/users/${userId}`,
       {
         method: 'DELETE',
 

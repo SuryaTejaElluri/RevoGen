@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ResultsRouterPage() {
   const params = useParams();
@@ -22,7 +23,7 @@ export default function ResultsRouterPage() {
 
       const response =
         await fetch(
-          `http://localhost:3000/tests/${id}`,
+          `${API_BASE_URL}/tests/${id}`,
           {
             headers: {
               Authorization:

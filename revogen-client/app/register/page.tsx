@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 
 type AccountType = 'candidate' | 'recruiter';
 
@@ -51,7 +52,7 @@ export default function RegisterPage() {
     if (phone && !/^\+?[\d\s\-()]{7,15}$/.test(phone)) { setError('Please enter a valid phone number.'); return; }
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:3000/auth/register', {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password, phone: phone || undefined, role: isRecruiter ? 'ADMIN' : 'USER' }),

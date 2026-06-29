@@ -1,10 +1,11 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState, CSSProperties } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
-const API = 'http://localhost:3000';
+
 const token = () => (typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '');
 const h = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
@@ -78,8 +79,8 @@ export default function CreditsPage() {
     setLoading(true);
     try {
       const [wRes, hRes] = await Promise.all([
-        fetch(`${API}/credits`, { headers: h() }),
-        fetch(`${API}/credits/history?page=1&limit=10`, { headers: h() }),
+        fetch(`${API_BASE_URL}/credits`, { headers: h() }),
+        fetch(`${API_BASE_URL}/credits/history?page=1&limit=10`, { headers: h() }),
       ]);
       if (wRes.ok) setWallet(await wRes.json());
       if (hRes.ok) {

@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
+import { API_BASE_URL } from '@/lib/api';
 
 /* ─── Styles ──────────────────────────────────────────────────────────────── */
 const css = `
@@ -518,7 +519,7 @@ export default function TestResultsPage() {
   const loadResults = async () => {
     const token = localStorage.getItem('access_token');
     try {
-      const res  = await fetch(`http://localhost:3000/tests/${id}/results`, {
+      const res  = await fetch(`${API_BASE_URL}/tests/${id}/results`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Question {
@@ -651,7 +652,7 @@ export default function TestPage() {
 
     const token = localStorage.getItem('access_token');
     try {
-      await fetch(`http://localhost:3000/tests/${id}/submit`, {
+      await fetch(`${API_BASE_URL}/tests/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -682,7 +683,7 @@ export default function TestPage() {
   const loadTest = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3000/tests/${id}`,
+        `${API_BASE_URL}/tests/${id}`,
       );
 
       const data = await response.json();
@@ -699,7 +700,7 @@ export default function TestPage() {
 
         const attemptResponse =
           await fetch(
-            `http://localhost:3000/tests/${id}/attempt-status`,
+            `${API_BASE_URL}/tests/${id}/attempt-status`,
             {
               headers: {
                 Authorization:

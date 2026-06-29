@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
+import { API_BASE_URL } from '@/lib/api';
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconSearch = () => (
@@ -270,7 +271,7 @@ export default function PracticePage() {
 
   const loadTests = async () => {
     try {
-      const res = await fetch('http://localhost:3000/tests/practice');
+      const res = await fetch(`${API_BASE_URL}/tests/practice`);
       const data = await res.json();
       setTests(data);
     } catch (e) {

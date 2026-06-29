@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useMemo, useState, ReactNode, CSSProperties } from 'react';
 import Link from 'next/link';
@@ -193,9 +194,9 @@ export default function AdminDashboard() {
     const h = { Authorization: `Bearer ${token}` };
 
     Promise.all([
-      fetch('http://localhost:3000/tests/dashboard/stats', { headers: h }).then(r => r.json()),
-      fetch('http://localhost:3000/coding-tests/dashboard/stats', { headers: h }).then(r => r.json()),
-      fetch('http://localhost:3000/users/my-leaderboard', { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/tests/dashboard/stats`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/coding-tests/dashboard/stats`, { headers: h }).then(r => r.json()),
+      fetch(`${API_BASE_URL}/users/my-leaderboard`, { headers: h }).then(r => r.json()),
     ]).then(([mcqData, codingData, lbData]) => {
       setMcq(mcqData);
       setCoding(codingData);

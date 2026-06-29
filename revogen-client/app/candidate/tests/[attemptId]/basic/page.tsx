@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { API_BASE_URL } from '@/lib/api';
 
 const Editor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -227,7 +228,7 @@ export default function BasicAssessmentPage() {
   const logSecurityEvent = useCallback(async (eventType: string, details?: Record<string, any>) => {
     try {
       const token = localStorage.getItem("access_token") || "";
-      await fetch(`http://localhost:3000/coding-attempts/${attemptId}/security-event`, {
+      await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}/security-event`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -253,7 +254,7 @@ export default function BasicAssessmentPage() {
     try {
       const token = localStorage.getItem("access_token") || "";
       const res = await fetch(
-        `http://localhost:3000/coding-attempts/${attemptId}/basic/final-submit`,
+        `${API_BASE_URL}/coding-attempts/${attemptId}/basic/final-submit`,
         {
           method: "POST",
           headers: {
@@ -332,7 +333,7 @@ export default function BasicAssessmentPage() {
     const fetchAttempt = async () => {
       try {
         const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
-        const res = await fetch(`http://localhost:3000/coding-attempts/${attemptId}`, {
+        const res = await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log("TOKEN:", token);
@@ -559,7 +560,7 @@ export default function BasicAssessmentPage() {
     setActiveResultTab("result");
     try {
       const token = localStorage.getItem("access_token") || "";
-      const res = await fetch("http://localhost:3000/coding-submissions/run", {
+      const res = await fetch(`${API_BASE_URL}/coding-submissions/run`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -592,7 +593,7 @@ export default function BasicAssessmentPage() {
     setActiveResultTab("result");
     try {
       const token = localStorage.getItem("access_token") || "";
-      const res = await fetch("http://localhost:3000/coding-submissions/submit", {
+      const res = await fetch(`${API_BASE_URL}/coding-submissions/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

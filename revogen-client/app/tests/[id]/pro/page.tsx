@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
+import { API_BASE_URL } from '@/lib/api';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface Question {
@@ -987,7 +988,7 @@ export default function TestPage() {
     // Capture current state snapshot for submission
     // These are read via closure at call time
     try {
-      await fetch(`http://localhost:3000/tests/${id}/submit`, {
+      await fetch(`${API_BASE_URL}/tests/${id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -1044,14 +1045,14 @@ export default function TestPage() {
     if (!id) return;
     const load = async () => {
       try {
-        const res  = await fetch(`http://localhost:3000/tests/${id}`);
+        const res  = await fetch(`${API_BASE_URL}/tests/${id}`);
         const data = await res.json();
         setTest(data);
         setTimeLeft(data.duration * 60);
 
         if (!data.isPractice) {
           const token = localStorage.getItem('access_token');
-          const ar    = await fetch(`http://localhost:3000/tests/${id}/attempt-status`, {
+          const ar    = await fetch(`${API_BASE_URL}/tests/${id}/attempt-status`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const ad = await ar.json();

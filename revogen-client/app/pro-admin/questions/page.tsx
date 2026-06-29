@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProAdminNavbar from '@/components/ProAdminNavbar';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ProAdminQuestionsPage() {
   const [questions, setQuestions] =
@@ -24,7 +25,7 @@ export default function ProAdminQuestionsPage() {
 
         const response =
           await fetch(
-            'http://localhost:3000/question-bank',
+            `${API_BASE_URL}/question-bank`,
             {
               headers: {
                 Authorization:
@@ -62,7 +63,7 @@ export default function ProAdminQuestionsPage() {
           );
 
         await fetch(
-          `http://localhost:3000/question-bank/${id}`,
+          `${API_BASE_URL}/question-bank/${id}`,
           {
             method: 'DELETE',
             headers: {

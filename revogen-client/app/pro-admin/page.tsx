@@ -1,6 +1,7 @@
 'use client';
 
 import ProAdminNavbar from '@/components/ProAdminNavbar';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ProAdminDashboard() {
   return (

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
+
 
 export default function ProAdminNavbar() {
   const router = useRouter();

@@ -1,5 +1,5 @@
-'use client';
-
+﻿'use client';
+import { API_BASE_URL } from '@/lib/api';
 import React, { useState, useEffect, useCallback, FormEvent, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -97,7 +97,7 @@ export default function AssignPage() {
   const [estimateResult, setEstimateResult] = useState<{ requiredCredits: number; currentBalance: number; remainingBalance: number; enoughCredits: boolean } | null>(null);
 
   // --- Constants ---
-  const API_BASE_URL = 'http://localhost:3000';
+  
 
   // Helper to get token
   const getToken = () => {

@@ -1,5 +1,5 @@
 'use client';
-
+import { API_BASE_URL } from '@/lib/api';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -544,7 +544,7 @@ export default function CodingTestResultsPage() {
   const loadResults = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`http://localhost:3000/coding-tests/${testId}/results`, {
+      const res = await fetch(`${API_BASE_URL}/coding-tests/${testId}/results`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -563,12 +563,12 @@ export default function CodingTestResultsPage() {
         result.proSummary.cameraDisabled || result.proSummary.micDisabled
       ));
       const endpoint = isPro
-        ? `http://localhost:3000/coding-attempts/${result.id}/pro/report`
-        : `http://localhost:3000/coding-attempts/${result.id}/report`;
+        ? `${API_BASE_URL}/coding-attempts/${result.id}/pro/report`
+        : `${API_BASE_URL}/coding-attempts/${result.id}/report`;
       let res = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok && isPro) {
         // fallback to basic report
-        res = await fetch(`http://localhost:3000/coding-attempts/${result.id}/report`, { headers: { Authorization: `Bearer ${token}` } });
+        res = await fetch(`${API_BASE_URL}/coding-attempts/${result.id}/report`, { headers: { Authorization: `Bearer ${token}` } });
       }
       if (!res.ok) throw new Error('Failed');
       const data: AttemptReport = await res.json();

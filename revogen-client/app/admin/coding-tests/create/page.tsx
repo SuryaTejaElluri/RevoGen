@@ -1,5 +1,5 @@
 'use client';
-
+import { API_BASE_URL } from '@/lib/api';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -41,7 +41,7 @@ export default function CreateCodingAssessmentPage() {
 
   const loadQuestions = async () => {
     try {
-      const response = await fetch('http://localhost:3000/coding-question-bank');
+      const response = await fetch(`${API_BASE_URL}/coding-question-bank`);
       if (response.ok) {
         const data = await response.json();
         setQuestions(data);
@@ -123,7 +123,7 @@ export default function CreateCodingAssessmentPage() {
         questionIds: selectedIds,
       };
 
-      const response = await fetch('http://localhost:3000/coding-tests', {
+      const response = await fetch(`${API_BASE_URL}/coding-tests`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

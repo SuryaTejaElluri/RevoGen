@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -75,7 +76,7 @@ export default function AssessmentViewPage() {
 
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
-      const res = await fetch(`http://localhost:3000/coding-tests/${assessmentId}`, {
+      const res = await fetch(`${API_BASE_URL}/coding-tests/${assessmentId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

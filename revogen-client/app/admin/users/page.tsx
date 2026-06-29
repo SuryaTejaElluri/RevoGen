@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 
 import AdminNavbar from '@/components/AdminNavbar';
 import Link from 'next/link';
@@ -21,7 +22,7 @@ export default function UsersPage() {
 
       const response =
         await fetch(
-          'http://localhost:3000/users',
+          `${API_BASE_URL}/users`,
           {
             headers: {
               Authorization:

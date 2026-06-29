@@ -1,4 +1,5 @@
-'use client';
+﻿'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
@@ -20,7 +21,7 @@ export default function InvitePage() {
     try {
       setFetchingInvites(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:3000/tests/${testId}/invitations`, {
+      const response = await fetch(`${API_BASE_URL}/tests/${testId}/invitations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -37,7 +38,7 @@ export default function InvitePage() {
       setLoading(true);
       const token = localStorage.getItem('access_token');
       const emailList = emails.split('\n').map((e) => e.trim()).filter(Boolean);
-      const response = await fetch(`http://localhost:3000/tests/${testId}/invite`, {
+      const response = await fetch(`${API_BASE_URL}/tests/${testId}/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ emails: emailList }),

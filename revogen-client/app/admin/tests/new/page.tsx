@@ -1,4 +1,6 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -74,7 +76,7 @@ export default function CreateTestPage() {
   const loadAvailability = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:3000/question-bank/stats', {
+      const response = await fetch(`${API_BASE_URL}/question-bank/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -115,7 +117,7 @@ console.log("IS ARRAY:", Array.isArray(data));
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:3000/tests', {
+      const response = await fetch(`${API_BASE_URL}/tests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title, duration, modules: selectedModules, securityLevel,autoGenerate }),

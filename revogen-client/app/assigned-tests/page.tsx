@@ -1,4 +1,5 @@
 'use client';
+import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -692,7 +693,7 @@ export default function AssignedTestsPage() {
     try {
       const token = localStorage.getItem('access_token');
       const res = await fetch(
-        `http://localhost:3000/coding-attempts/start/${codingTestId}`,
+        `${API_BASE_URL}/coding-attempts/start/${codingTestId}`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
@@ -732,8 +733,8 @@ export default function AssignedTestsPage() {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [mcqRes, codingRes] = await Promise.all([
-        fetch('http://localhost:3000/tests/assigned', { headers }),
-        fetch('http://localhost:3000/coding-tests/assigned', { headers }),
+        fetch(`${API_BASE_URL}/tests/assigned`, { headers }),
+        fetch(`${API_BASE_URL}/coding-tests/assigned`, { headers }),
       ]);
 
       const mcqData = await mcqRes.json();

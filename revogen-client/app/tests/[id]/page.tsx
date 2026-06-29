@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function TestInstructionsPage() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export default function TestInstructionsPage() {
 
   const loadTest = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/tests/${params.id}`);
+      const response = await fetch(`${API_BASE_URL}/tests/${params.id}`);
       const data = await response.json();
       setTest(data);
     } catch (error) {

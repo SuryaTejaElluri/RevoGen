@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
+import { API_BASE_URL } from '@/lib/api';
+
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -74,7 +76,7 @@ type ToastType = "success" | "error" | "warning" | "info";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_BASE = "http://localhost:3000";
+
 
 /**
  * Maps a starterCodes key (whatever the backend sends) to the language string
@@ -220,7 +222,7 @@ export default function ProAssessmentPage() {
   const logSecurityEvent = useCallback(
     async (eventType: string, details: Record<string, any> = {}) => {
       try {
-        await fetch(`${API_BASE}/coding-attempts/${attemptId}/security-event`, {
+        await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}/security-event`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -459,7 +461,7 @@ export default function ProAssessmentPage() {
         });
 
         // Fire and forget — never block the test
-        fetch(`${API_BASE}/coding-attempts/${attemptId}/security-screenshot`, {
+        fetch(`${API_BASE_URL}/coding-attempts/${attemptId}/security-screenshot`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -531,7 +533,7 @@ export default function ProAssessmentPage() {
     setIsFinalSubmitting(true);
     try {
       const res = await fetch(
-        `${API_BASE}/coding-attempts/${attemptId}/pro/final-submit`,
+        `${API_BASE_URL}/coding-attempts/${attemptId}/pro/final-submit`,
         {
           method: "POST",
           headers: {
@@ -593,7 +595,7 @@ export default function ProAssessmentPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/coding-attempts/${attemptId}`, {
+        const res = await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}`, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         if (!res.ok) throw new Error(`Failed to load (${res.status})`);
@@ -1048,7 +1050,7 @@ export default function ProAssessmentPage() {
     setRunResults(null);
     setActiveResultTab("result");
     try {
-      const res = await fetch(`${API_BASE}/coding-submissions/run`, {
+      const res = await fetch(`${API_BASE_URL}/coding-submissions/run`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1089,7 +1091,7 @@ export default function ProAssessmentPage() {
     setRunResults(null);
     setActiveResultTab("result");
     try {
-      const res = await fetch(`${API_BASE}/coding-submissions/submit`, {
+      const res = await fetch(`${API_BASE_URL}/coding-submissions/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
