@@ -416,6 +416,9 @@ export default function CreateCodingAssessmentPage() {
             <Link href="/admin/tests" className="form-label" style={{ display: 'inline-block', margin: 0 }}>
               ← Back to Tests
             </Link>
+            <Link href="/admin/coding-question-bank" target="_blank" rel="noopener noreferrer" className="form-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, margin: 0, background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', color: '#818cf8', borderRadius: 8, padding: '6px 14px', textDecoration: 'none', fontWeight: 600, fontSize: 12 }}>
+              🧩 RevoGen Question Bank ↗
+            </Link>
           </div>
 
           <form onSubmit={handleSubmit} className="create-grid">

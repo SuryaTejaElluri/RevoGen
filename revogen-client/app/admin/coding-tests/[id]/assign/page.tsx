@@ -280,21 +280,34 @@ export default function AssignPage() {
   };
 
   // --- Derived stats ---
+  // resolvedStatus: derives the true display status from both invitation status
+  // and attempt status. If a candidate has started or completed the test, the
+  // invitation is effectively "Accepted" regardless of what the backend status field says.
+  const resolvedStatus = (inv: Invitation): string => {
+    const attempt = (inv.attemptStatus || '').toUpperCase();
+    if (attempt === 'COMPLETED')   return 'COMPLETED';
+    if (attempt === 'IN_PROGRESS') return 'IN_PROGRESS';
+    const invite = (inv.status || '').toUpperCase();
+    // If the candidate has an attempt at all, treat as accepted
+    if (inv.attemptId)             return 'ACCEPTED';
+    if (invite === 'ACCEPTED')     return 'ACCEPTED';
+    if (invite === 'EXPIRED')      return 'EXPIRED';
+    if (invite === 'CANCELLED')    return 'CANCELLED';
+    return 'PENDING';
+  };
+
   const stats = useMemo(() => {
     const total = invitations.length;
-    let pending = 0,
-      accepted = 0,
-      completed = 0,
-      inProgress = 0;
+    let pending = 0, accepted = 0, completed = 0, inProgress = 0;
     invitations.forEach((i) => {
-      const s = (i.status || '').toUpperCase();
-      const a = (i.attemptStatus || '').toUpperCase();
-      if (a === 'COMPLETED') completed++;
-      else if (a === 'IN_PROGRESS') inProgress++;
-      else if (s === 'ACCEPTED') accepted++;
-      else pending++;
+      const rs = resolvedStatus(i);
+      if      (rs === 'COMPLETED')   completed++;
+      else if (rs === 'IN_PROGRESS') inProgress++;
+      else if (rs === 'ACCEPTED')    accepted++;
+      else                           pending++;
     });
     return { total, pending, accepted, completed, inProgress };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invitations]);
 
   const filteredInvitations = useMemo(() => {
@@ -312,13 +325,26 @@ export default function AssignPage() {
   const statusBadge = (status: string) => {
     const s = status.toUpperCase();
     const map: Record<string, string> = {
-      PENDING: 'bg-amber-500/10 text-amber-300 ring-amber-400/30',
-      ACCEPTED: 'bg-blue-500/10 text-blue-300 ring-blue-400/30',
-      COMPLETED: 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30',
-      EXPIRED: 'bg-slate-500/10 text-slate-400 ring-slate-400/30',
-      CANCELLED: 'bg-red-500/10 text-red-300 ring-red-400/30',
+      PENDING:     'bg-amber-500/10 text-amber-300 ring-amber-400/30',
+      ACCEPTED:    'bg-blue-500/10 text-blue-300 ring-blue-400/30',
+      IN_PROGRESS: 'bg-cyan-500/10 text-cyan-300 ring-cyan-400/30',
+      COMPLETED:   'bg-emerald-500/10 text-emerald-300 ring-emerald-400/30',
+      EXPIRED:     'bg-slate-500/10 text-slate-400 ring-slate-400/30',
+      CANCELLED:   'bg-red-500/10 text-red-300 ring-red-400/30',
     };
     return map[s] || 'bg-slate-500/10 text-slate-300 ring-slate-400/30';
+  };
+
+  const statusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      PENDING:     'Pending',
+      ACCEPTED:    'Accepted',
+      IN_PROGRESS: 'In Progress',
+      COMPLETED:   'Completed',
+      EXPIRED:     'Expired',
+      CANCELLED:   'Cancelled',
+    };
+    return map[status.toUpperCase()] ?? status;
   };
 
   const securityBadge = (level?: string) => {
@@ -726,9 +752,9 @@ export default function AssignPage() {
                               </td>
                               <td className="px-5 py-4">
                                 <span
-                                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${statusBadge(inv.status)}`}
+                                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${statusBadge(resolvedStatus(inv))}`}
                                 >
-                                  {inv.status}
+                                  {statusLabel(resolvedStatus(inv))}
                                 </span>
                               </td>
                               <td className="px-5 py-4">

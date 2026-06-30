@@ -1,9 +1,10 @@
-'use client';
+﻿'use client';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useMemo, useState, ReactNode, CSSProperties } from 'react';
 import Link from 'next/link';
-import AdminSidebar, { Theme } from '@/components/AdminSidebar' 
+import AdminSidebar, { Theme } from '@/components/AdminSidebar'
+import './dashborad.css'
 
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -67,9 +68,9 @@ function timeAgo(dateStr: string) {
 
 // Brand palette — tuned to read correctly on both dark and light surfaces
 const C = {
-  accent: '#6366f1', accent2: '#22d3ee',
-  success: '#22c55e', danger: '#fb7185',
-  warning: '#f5a524', purple: '#a78bfa',
+  accent: '#7c6cf6', accent2: '#36d1dc',
+  success: '#2bd576', danger: '#ff6b81',
+  warning: '#ffb547', purple: '#b18aff',
 };
 
 function StatCard({
@@ -245,24 +246,66 @@ export default function AdminDashboard() {
   );
 
   const quickActions = [
-    { href: '/admin/tests/new',            icon: SI.doc,    title: 'Create MCQ Test',    accent: C.accent   },
-    { href: '/admin/coding-tests/create',  icon: SI.code,   title: 'Create Coding Test', accent: C.purple   },
-    { href: '/admin/tests',                icon: SI.grid,   title: 'All Assessments',    accent: C.accent2  },
-    { href: '/admin/questions',            icon: SI.bars,   title: 'Question Bank',      accent: C.warning  },
+    { href: '/admin/tests/new',                 icon: SI.doc,    title: 'Create MCQ Test',      accent: C.accent   },
+    { href: '/admin/coding-tests/create',        icon: SI.code,   title: 'Create Coding Test',   accent: C.purple   },
+    { href: '/admin/tests',                      icon: SI.grid,   title: 'All Assessments',      accent: C.accent2  },
+    { href: '/admin/questions',                  icon: SI.bars,   title: 'Question Bank',        accent: C.warning  },
+    { href: '/admin/coding-question-bank',       icon: SI.code,   title: 'Coding Question Bank', accent: '#22c55e'  },
   ];
 
   return (
     <>
-      <GlobalStyle />
       <div className="adm-shell">
         <AdminSidebar theme={theme} onToggleTheme={toggleTheme} />
 
         <div className="adm-main">
           {loading ? (
             <div className="adm-loading">
-              <div className="topbar-skeleton" />
+              {/* ── Hero greeting ── */}
+              <div className="sl-hero">
+                <div className="sl-hero-left">
+                  <div className="sl-logo-pulse">⚡</div>
+                  <div>
+                    <div className="sl-title">Welcome back, Admin</div>
+                    <div className="sl-subtitle">RevoGen is loading your dashboard…</div>
+                  </div>
+                </div>
+                <div className="sl-spinner-wrap">
+                  <div className="sl-ring" />
+                  <div className="sl-ring sl-ring-2" />
+                </div>
+              </div>
+
+              {/* ── Animated feature cards ── */}
+              <div className="sl-features-label">What you can do with RevoGen</div>
+              <div className="sl-features">
+                {[
+                  { icon: '📝', title: 'Create MCQ Tests',       desc: 'Build question banks, set time limits, and auto-grade candidates instantly.',        color: '#6366f1', delay: '0s'    },
+                  { icon: '💻', title: 'Code Assessments',        desc: 'Create real coding challenges with test cases, multi-language support & execution.',  color: '#8b5cf6', delay: '0.08s' },
+                  { icon: '📹', title: 'PRO Proctoring',          desc: 'AI face detection, screen share, noise alerts — full exam integrity out of the box.', color: '#06b6d4', delay: '0.16s' },
+                  { icon: '📊', title: 'Deep Analytics',          desc: 'Risk scores, violation timelines, per-question breakdowns and leaderboards.',         color: '#f59e0b', delay: '0.24s' },
+                  { icon: '✉️', title: 'Bulk Invite Candidates',  desc: 'Paste emails and send invitations in one click. Credits auto-deducted per invite.',  color: '#22c55e', delay: '0.32s' },
+                  { icon: '🧩', title: 'Question Bank',           desc: 'Manage and reuse a growing library of MCQ and coding questions across tests.',        color: '#f97316', delay: '0.40s' },
+                ].map((f) => (
+                  <div key={f.title} className="sl-feat-card" style={{ '--feat-color': f.color, animationDelay: f.delay } as React.CSSProperties}>
+                    <div className="sl-feat-icon">{f.icon}</div>
+                    <div className="sl-feat-title">{f.title}</div>
+                    <div className="sl-feat-desc">{f.desc}</div>
+                    <div className="sl-feat-bar" />
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Skeleton stat cards ── */}
+              <div className="sl-section-label">Loading your stats…</div>
               <div className="stat-grid">
-                {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton-card" />)}
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="skeleton-card" style={{ animationDelay: `${i * 0.07}s` }}>
+                    <div className="sk-icon" />
+                    <div className="sk-line sk-line-short" />
+                    <div className="sk-line sk-line-long" />
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -283,6 +326,31 @@ export default function AdminDashboard() {
                   <Link href="/admin/tests" className="btn btn-secondary">
                     View All
                   </Link>
+                </div>
+              </div>
+
+              {/* ── RevoGen Hero Highlight ── */}
+              <div className="hero-banner">
+                <div className="hero-banner-glow hg-1" />
+                <div className="hero-banner-glow hg-2" />
+                <div className="hero-banner-content">
+                  <div className="hero-badge">
+                    <span className="hero-badge-dot" />
+                    RevoGen Admin
+                  </div>
+                  <h2 className="hero-banner-title">
+                    Run every assessment from one powerful command center
+                  </h2>
+                  <p className="hero-banner-sub">
+                    MCQ tests, live coding challenges, candidate proctoring and analytics — fully unified for your team.
+                  </p>
+                  <div className="hero-feature-row">
+                    <div className="hero-feature-pill">{SI.doc}<span>MCQ Builder</span></div>
+                    <div className="hero-feature-pill">{SI.code}<span>Coding Tests</span></div>
+                    <div className="hero-feature-pill">{SI.users}<span>Candidate CRM</span></div>
+                    <div className="hero-feature-pill">{SI.bars}<span>Live Analytics</span></div>
+                    <div className="hero-feature-pill">{SI.target}<span>Risk Detection</span></div>
+                  </div>
                 </div>
               </div>
 
@@ -474,109 +542,5 @@ export default function AdminDashboard() {
         </div>
       </div>
     </>
-  );
-}
-
-// ─── Global styles (theme tokens + component classes) ──────────────────────
-
-function GlobalStyle() {
-  return (
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-      :root,
-      [data-theme='dark'] {
-        --bg: #0b0d14;
-        --surface: #13151f;
-        --surface-2: #1a1d29;
-        --border: #252836;
-        --text: #edeef3;
-        --muted: #8b8d9b;
-        --accent: ${C.accent};
-        --accent-2: ${C.accent2};
-        --accent-soft: rgba(99,102,241,0.14);
-        --danger: ${C.danger};
-        --danger-soft: rgba(251,113,133,0.12);
-      }
-      [data-theme='light'] {
-        --bg: #f6f7fb;
-        --surface: #ffffff;
-        --surface-2: #f0f1f6;
-        --border: #e4e6ed;
-        --text: #15171f;
-        --muted: #6b6e7c;
-        --accent: ${C.accent};
-        --accent-2: ${C.accent2};
-        --accent-soft: rgba(99,102,241,0.10);
-        --danger: ${C.danger};
-        --danger-soft: rgba(251,113,133,0.10);
-      }
-
-      .adm-shell { display: flex; min-height: 100vh; background: var(--bg); }
-      .adm-main { flex: 1; min-width: 0; }
-      .adm { font-family: 'Inter', sans-serif; color: var(--text); padding: 28px 32px 40px; }
-
-      .adm-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; flex-wrap: wrap; gap: 12px; }
-      .adm-h1 { font-size: 25px; font-weight: 800; margin: 0 0 4px; letter-spacing: -0.5px; }
-      .adm-subtitle { color: var(--muted); font-size: 13.5px; margin: 0; }
-
-      .btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 9px; padding: 9px 16px; font-size: 13px; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: opacity .15s, border-color .15s; }
-      .btn svg { width: 15px; height: 15px; }
-      .btn-primary { background: var(--accent); color: #fff; }
-      .btn-primary:hover { opacity: 0.88; }
-      .btn-secondary { background: var(--surface); border-color: var(--border); color: var(--muted); }
-      .btn-secondary:hover { color: var(--text); border-color: var(--accent); }
-      .btn-block { display: flex; justify-content: center; width: 100%; }
-
-      .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-      .stat-card { position: relative; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
-      .stat-card-glow { position: absolute; top: -30px; right: -30px; width: 90px; height: 90px; border-radius: 50%; background: var(--glow); opacity: 0.16; filter: blur(6px); pointer-events: none; }
-      .stat-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; }
-      .stat-value { font-size: 28px; font-weight: 800; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; }
-      .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
-      .stat-icon { display: flex; opacity: 0.9; }
-
-      .adm-block { margin-bottom: 28px; }
-      .section { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; }
-      .section-title { font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 18px; }
-      .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-      .link-accent { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 600; }
-
-      .qa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-      .qa-card { display: block; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--accent); border-radius: 12px; padding: 18px; text-decoration: none; transition: border-color .18s, transform .15s; }
-      .qa-card:hover { transform: translateY(-2px); }
-      .qa-icon { margin-bottom: 10px; display: flex; }
-      .qa-title { font-size: 13px; font-weight: 700; color: var(--text); }
-      .qa-open { font-size: 11px; margin-top: 6px; font-weight: 600; }
-
-      .grid-2col { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; margin-bottom: 28px; }
-
-      .activity-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-      .activity-row:last-child { border-bottom: none; }
-      .activity-icon { display: flex; color: var(--accent); flex-shrink: 0; }
-      .activity-label { color: var(--text); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0.88; }
-      .activity-tag { font-size: 11px; background: var(--surface-2); color: var(--muted); border-radius: 4px; padding: 1px 6px; }
-      .activity-time { font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
-
-      .lb-row { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-      .lb-rank { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; }
-      .lb-name { color: var(--text); font-weight: 600; font-size: 14px; }
-      .lb-email { color: var(--muted); font-size: 12px; }
-
-      .summary-row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-      .summary-row:last-child { border-bottom: none; }
-
-      .empty-state { text-align: center; color: var(--muted); padding: 24px 0; font-size: 13px; }
-      .chart-tooltip { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--text); }
-
-      .adm-loading { padding: 28px 32px; }
-      .topbar-skeleton { height: 40px; width: 240px; border-radius: 10px; background: var(--surface-2); margin-bottom: 28px; animation: pulse 1.5s ease-in-out infinite; }
-      .skeleton-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; height: 110px; animation: pulse 1.5s ease-in-out infinite; }
-      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-      @media (max-width: 900px) {
-        .adm { padding: 20px; }
-      }
-    `}</style>
   );
 }
