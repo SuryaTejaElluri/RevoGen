@@ -33,7 +33,7 @@ export class UsersController {
   @Get()
   @UseGuards(
     AuthGuard('jwt'),
-    AdminGuard,
+    SuperAdminGuard,
   )
   findAll() {
     return this.usersService.findAll();
@@ -74,7 +74,7 @@ deleteUser(
   @Get(':id/profile')
 @UseGuards(
   AuthGuard('jwt'),
-  AdminGuard,
+  SuperAdminGuard,
 )
 getCandidateProfile(
   @Param('id') id: string,

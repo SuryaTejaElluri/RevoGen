@@ -1,50 +1,54 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
 import { API_BASE_URL } from '@/lib/api';
 
 export default function CandidateProfilePage() {
   const params = useParams();
+  const router = useRouter();
 
-  const id =
-    params.id as string;
+  const id = params.id as string;
 
-  const [candidate, setCandidate] =
-    useState<any>(null);
+  const [candidate, setCandidate] = useState<any>(null);
 
   useEffect(() => {
+    // Only SUPER_ADMIN may access this page
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload?.role !== 'SUPER_ADMIN') {
+        router.replace('/admin');
+        return;
+      }
+    } catch {
+      router.replace('/login');
+      return;
+    }
     loadCandidate();
   }, []);
 
-  const loadCandidate =
-    async () => {
-      try {
-        const token =
-          localStorage.getItem(
-            'access_token',
-          );
+  const loadCandidate = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
 
-        const response =
-          await fetch(
-            `${API_BASE_URL}/users/${id}/profile`,
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${token}`,
-              },
-            },
-          );
+      const response = await fetch(`${API_BASE_URL}/users/${id}/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        const data =
-          await response.json();
-
-        setCandidate(data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+      const data = await response.json();
+      setCandidate(data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   if (!candidate) {
     return (

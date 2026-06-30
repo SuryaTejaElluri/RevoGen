@@ -1,41 +1,48 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
 
 import AdminNavbar from '@/components/AdminNavbar';
 import Link from 'next/link';
+
 export default function UsersPage() {
-  const [users, setUsers] =
-    useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
+    // Only SUPER_ADMIN may access this page
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.replace('/login');
+      return;
+    }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload?.role !== 'SUPER_ADMIN') {
+        router.replace('/admin');
+        return;
+      }
+    } catch {
+      router.replace('/login');
+      return;
+    }
     loadUsers();
   }, []);
 
-  const loadUsers =
-    async () => {
-      const token =
-        localStorage.getItem(
-          'access_token',
-        );
+  const loadUsers = async () => {
+    const token = localStorage.getItem('access_token');
 
-      const response =
-        await fetch(
-          `${API_BASE_URL}/users`,
-          {
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
-          },
-        );
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      const data =
-        await response.json();
-
-      setUsers(data);
-    };
+    const data = await response.json();
+    setUsers(data);
+  };
 
   return (
     <>

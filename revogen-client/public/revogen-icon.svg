@@ -1,0 +1,20 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="d-accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8B7CFF"/>
+      <stop offset="100%" stop-color="#5B3FD9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- flat dark tile -->
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="#0B0D14"/>
+  <rect x="1" y="1" width="62" height="62" rx="16" fill="none" stroke="#FFFFFF" stroke-opacity="0.07"/>
+
+  <!-- geometric R, single accent gradient, no glow/effects -->
+  <path d="M22 18 H32 C36.4 18 39.5 20.9 39.5 25 C39.5 28.1 37.6 30.4 34.7 31.3 L40.5 46 H34.8 L29.4 32.2 H27.5 V46 H22 V18 Z
+           M27.5 22 V28.2 H31.3 C33.3 28.2 34.4 27 34.4 25.1 C34.4 23.2 33.3 22 31.3 22 H27.5 Z"
+        fill="url(#d-accent)"/>
+
+  <!-- single minimal accent dot, signature of the mark -->
+  <circle cx="44" cy="20" r="2.4" fill="url(#d-accent)"/>
+</svg>
