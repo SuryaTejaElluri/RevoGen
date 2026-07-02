@@ -25,10 +25,19 @@ export default function LoginPage() {
   }, [dark]);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) router.push('/dashboard');
-  }, [router]);
+  const token = localStorage.getItem("access_token");
+  const role = localStorage.getItem("role");
 
+  if (!token) return;
+
+  if (role === "SUPER_ADMIN") {
+    router.replace("/pro-admin");
+  } else if (role === "ADMIN") {
+    router.replace("/admin");
+  } else {
+    router.replace("/dashboard");
+  }
+}, [router]);
   const login = async () => {
     setError('');
     if (!email || !password) {
@@ -48,6 +57,7 @@ export default function LoginPage() {
         return;
       }
       localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem("role", data.role);
       if (data.role === 'SUPER_ADMIN') {
   router.push('/pro-admin');
 }

@@ -11,17 +11,20 @@ export class UsersService {
     });
   }
 
-  async create(data: {
-    name: string;
-    email: string;
-    password: string;
-    phone?: string;
-    role?: string;
-  }) {
-    return this.prisma.user.create({
-      data,
-    });
-  }
+ async create(data: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role?: string;
+
+  verificationToken?: string;
+  verificationTokenExpires?: Date;
+}) {
+  return this.prisma.user.create({
+    data,
+  });
+}
   async findAll() {
   return this.prisma.user.findMany({
     select: {

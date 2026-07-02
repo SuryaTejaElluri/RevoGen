@@ -8,12 +8,13 @@ import { UsersModule } from '../users/users.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from '../prisma/prisma.service';
-
+import { MailModule } from '../mail/mail.module';
 @Module({
   imports: [
     UsersModule,
     ConfigModule,
     PassportModule,
+    MailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

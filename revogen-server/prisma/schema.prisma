@@ -33,11 +33,6 @@ enum CodingCategory {
   MATH
 }
 
-enum UserRole {
-  ADMIN
-  USER
-}
-
 model User {
   id       String  @id @default(uuid())
   name     String
@@ -47,6 +42,15 @@ model User {
   provider String  @default("credentials")
 
   role String @default("USER")
+
+  // ==========================
+  // Email Verification
+  // ==========================
+  isVerified Boolean @default(false)
+
+  verificationToken String?
+
+  verificationTokenExpires DateTime?
 
   codingTests CodingTest[]
   tests       Test[]

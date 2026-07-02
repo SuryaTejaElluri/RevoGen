@@ -8,11 +8,12 @@ import { CodingTestsService } from './coding-tests.service';
 
 import { CodingAttemptsModule } from '../coding-attempts/coding-attempts.module';
 import { CreditsModule } from '../credits/credits.module';
-
+import { MailModule } from '../mail/mail.module';
 @Module({
   imports: [
     CodingAttemptsModule,
     CreditsModule,
+    MailModule
   ],
 
   controllers: [

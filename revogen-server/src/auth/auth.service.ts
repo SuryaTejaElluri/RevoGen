@@ -10,9 +10,9 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { PrismaService } from '../prisma/prisma.service';
-
+import * as crypto from 'crypto';
 import { UnauthorizedException } from '@nestjs/common';
-
+import { MailService } from '../mail/mail.service';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -21,6 +21,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private readonly mailService: MailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -37,18 +38,30 @@ export class AuthService {
 
     const hashedPassword =
       await bcrypt.hash(dto.password, 10);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
 
+const verificationTokenExpires = new Date(
+  Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+);
     const user = await this.usersService.create({
-      name: dto.name,
-      email: dto.email,
-      password: hashedPassword,
-      phone: dto.phone,
-      role: dto.role ?? 'USER',
-    });
+  name: dto.name,
+  email: dto.email,
+  password: hashedPassword,
+  phone: dto.phone,
+  role: dto.role ?? 'USER',
+
+  verificationToken,
+  verificationTokenExpires,
+});
 
     this.logger.log(`Registered user: ${dto.email} | role: ${dto.role ?? 'USER'}`);
 
     const { password, ...safeUser } = user;
+    await this.mailService.sendVerificationEmail(
+  user.email,
+  user.name,
+  `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`,
+);
 
     return {
       message: 'User registered successfully',
@@ -62,7 +75,7 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
-
+  
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.password!,
@@ -71,6 +84,13 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+      if (!user.isVerified) {
+  throw new UnauthorizedException(
+    'Please verify your email before logging in.',
+  );
+}
+
 
     // ── Wallet auto-creation for ADMIN accounts ──────────────────────────────
     if (user.role === 'ADMIN') {
@@ -137,5 +157,46 @@ export class AuthService {
       );
     }
   }
+
+
+  async verifyEmail(token: string) {
+
+  const user = await this.prisma.user.findFirst({
+    where: {
+      verificationToken: token,
+    },
+  });
+
+  if (!user) {
+    throw new BadRequestException(
+      'Invalid verification link.',
+    );
+  }
+
+  if (
+    !user.verificationTokenExpires ||
+    user.verificationTokenExpires < new Date()
+  ) {
+    throw new BadRequestException(
+      'Verification link has expired.',
+    );
+  }
+
+  await this.prisma.user.update({
+    where: {
+      id: user.id,
+    },
+    data: {
+      isVerified: true,
+      verificationToken: null,
+      verificationTokenExpires: null,
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Email verified successfully.',
+  };
+}
 }
 

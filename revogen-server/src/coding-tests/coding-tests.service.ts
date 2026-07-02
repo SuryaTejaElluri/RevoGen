@@ -4,12 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCodingTestDto } from './dto/create-coding-test.dto';
 import { CreditsService } from '../credits/credits.service';
 import { CREDIT_COST } from '../common/constants/credits.constants';
-
+import { MailService } from '../mail/mail.service';
 @Injectable()
 export class CodingTestsService {
   constructor(
     private prisma: PrismaService,
     private creditsService: CreditsService,
+     private readonly mailService: MailService,
   ) {}
 
   private readonly EVENT_WEIGHTS: Record<string, number> = {
@@ -114,83 +115,115 @@ export class CodingTestsService {
     return { success: true };
   }
 
-  async inviteCandidate(codingTestId: string, dto: InviteCandidateDto, userId: string) {
-    // ── 1. Load test (outside tx — read-only, no side effects) ──────────────────
-    const test = await this.prisma.codingTest.findFirst({
-      where: { id: codingTestId, createdById: userId },
-    });
+ async inviteCandidate(
+  codingTestId: string,
+  dto: InviteCandidateDto,
+  userId: string,
+) {
+  console.log("🔥 inviteCandidate() called");
+  // 1. Load test
+  const test = await this.prisma.codingTest.findFirst({
+    where: {
+      id: codingTestId,
+      createdById: userId,
+    },
+  });
 
-    if (!test) {
-      throw new NotFoundException('Coding test not found');
-    }
+  if (!test) {
+    throw new NotFoundException('Coding test not found');
+  }
 
-    const limit = this.INVITE_LIMITS[test.securityLevel] ?? 4;
+  const limit = this.INVITE_LIMITS[test.securityLevel] ?? 4;
 
-    // ── 2. Check duplicate / slot availability (outside tx) ─────────────────────
-    const alreadyInvited = await this.prisma.codingInvitation.findUnique({
-      where: {
-        codingTestId_candidateEmail: {
-          codingTestId,
-          candidateEmail: dto.candidateEmail,
-        },
+  // 2. Check duplicate invitation
+  const alreadyInvited = await this.prisma.codingInvitation.findUnique({
+    where: {
+      codingTestId_candidateEmail: {
+        codingTestId,
+        candidateEmail: dto.candidateEmail,
       },
-    });
+    },
+  });
 
-    const currentCount = await this.prisma.codingInvitation.count({
-      where: { codingTestId },
-    });
+  const currentCount = await this.prisma.codingInvitation.count({
+    where: {
+      codingTestId,
+    },
+  });
 
-    if (!alreadyInvited && currentCount >= limit) {
-      throw new BadRequestException(
-        `Invitation limit reached. Maximum ${limit} candidates allowed for ${test.securityLevel} security.`,
-      );
-    }
+  if (!alreadyInvited && currentCount >= limit) {
+    throw new BadRequestException(
+      `Invitation limit reached. Maximum ${limit} candidates allowed for ${test.securityLevel} security.`,
+    );
+  }
 
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.candidateEmail },
-    });
+  // 3. Find existing user (if registered)
+  const existingUser = await this.prisma.user.findUnique({
+    where: {
+      email: dto.candidateEmail,
+    },
+  });
 
-    // ── 3. Calculate credits (only for NEW invitations) ──────────────────────────
-    const isNew = !alreadyInvited;
-    const creditsPerCandidate = CREDIT_COST[test.securityLevel] ?? 5;
-    const requiredCredits = isNew ? creditsPerCandidate : 0;
+  // 4. Credits calculation
+  const isNew = !alreadyInvited;
+  const creditsPerCandidate =
+    CREDIT_COST[test.securityLevel] ?? 5;
 
-    // Pre-flight balance check (before entering tx) for a clean error response
-    if (isNew) {
-      const wallet = await this.prisma.adminCredits.findUnique({ where: { userId } });
-      const available = wallet?.balance ?? 0;
+  const requiredCredits = isNew
+    ? creditsPerCandidate
+    : 0;
 
-      if (available < requiredCredits) {
-        throw new BadRequestException({
-          success: false,
-          message: 'Insufficient Revo Credits.',
-          requiredCredits,
-          availableCredits: available,
-        });
-      }
-    }
-
-    // ── 4. Atomic transaction: deduct + create invitation ────────────────────────
-    let remainingCredits: number = 0;
-
-    const invitation = await this.prisma.$transaction(async (tx) => {
-      // Deduct credits inside the same tx so both roll back on failure
-      if (isNew) {
-        const result = await this.creditsService.deductCreditsWithinTx(
-          tx,
+  // Balance check
+  if (isNew) {
+    const wallet =
+      await this.prisma.adminCredits.findUnique({
+        where: {
           userId,
-          requiredCredits,
-          `Coding Test Assignment (${test.securityLevel})`,
-          codingTestId,
-        );
+        },
+      });
+
+    const available = wallet?.balance ?? 0;
+
+    if (available < requiredCredits) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Insufficient Revo Credits.',
+        requiredCredits,
+        availableCredits: available,
+      });
+    }
+  }
+
+  // 5. Transaction
+  let remainingCredits = 0;
+
+  const invitation = await this.prisma.$transaction(
+    async (tx) => {
+
+      if (isNew) {
+        const result =
+          await this.creditsService.deductCreditsWithinTx(
+            tx,
+            userId,
+            requiredCredits,
+            `Coding Test Assignment (${test.securityLevel})`,
+            codingTestId,
+          );
+
         remainingCredits = result.newBalance;
+
       } else {
-        // Re-inivite: no deduction — just read current balance
-        const wallet = await tx.adminCredits.findUnique({ where: { userId } });
+
+        const wallet =
+          await tx.adminCredits.findUnique({
+            where: {
+              userId,
+            },
+          });
+
         remainingCredits = wallet?.balance ?? 0;
       }
 
-      // Create / update invitation
       return tx.codingInvitation.upsert({
         where: {
           codingTestId_candidateEmail: {
@@ -205,21 +238,50 @@ export class CodingTestsService {
           userId: existingUser?.id,
         },
       });
-    });
+    },
+  );
 
-    const newCount = isNew ? currentCount + 1 : currentCount;
+  const newCount = isNew
+    ? currentCount + 1
+    : currentCount;
 
-    return {
-      success: true,
-      invitationId: invitation.id,
-      currentCount: newCount,
-      limit,
-      remaining: limit - newCount,
-      creditsUsed: requiredCredits,
-      remainingCredits,
-    };
+  // ==========================
+  // Send Invitation Email
+  // ==========================
+
+  try {
+    console.log(
+      '📧 Sending invitation email to:',
+      dto.candidateEmail,
+    );
+
+    await this.mailService.sendCodingTestInvitation(
+      dto.candidateEmail,
+      existingUser?.name ?? null,
+      test.title,
+      test.securityLevel,
+      test.duration,
+      `${process.env.CLIENT_URL}/assigned-tests`,
+    );
+
+    console.log('✅ Invitation email sent.');
+  } catch (err) {
+    console.error('❌ Failed to send invitation email');
+    console.error(err);
+
+    // Don't fail the invitation if email fails
   }
 
+  return {
+    success: true,
+    invitationId: invitation.id,
+    currentCount: newCount,
+    limit,
+    remaining: limit - newCount,
+    creditsUsed: requiredCredits,
+    remainingCredits,
+  };
+}
   async getInvitations(codingTestId: string, userId: string) {
     const test = await this.prisma.codingTest.findFirst({
       where: { id: codingTestId, createdById: userId },
@@ -343,6 +405,7 @@ export class CodingTestsService {
         createdById: userId,
       },
     });
+    
 
     if (!test) {
       throw new NotFoundException('Coding test not found');

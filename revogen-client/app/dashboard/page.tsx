@@ -272,9 +272,9 @@ export default function DashboardPage() {
   ];
 
   const quickActions = [
-    { label: 'Upload Resume', icon: '📄', path: '/resume', color: theme.accent, colorSoft: theme.accentSoft },
+    { label: 'Upload Resume', icon: '📄', path: '/resumes', color: theme.accent, colorSoft: theme.accentSoft },
     { label: 'Practice Exams', icon: '📝', path: '/practice', color: theme.success, colorSoft: theme.successSoft },
-    { label: 'My Assessments', icon: '📊', path: '/results', color: theme.warning, colorSoft: theme.warningSoft },
+    { label: 'My Assessments', icon: '📊', path: '/assigned-tests', color: theme.warning, colorSoft: theme.warningSoft },
   ];
 
   return (
