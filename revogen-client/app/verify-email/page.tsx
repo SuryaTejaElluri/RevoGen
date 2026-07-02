@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,7 +40,6 @@ export default function VerifyEmailPage() {
         setTimeout(() => {
           router.push('/login');
         }, 3000);
-
       } catch (err: any) {
         setSuccess(false);
         setMessage(err.message || 'Verification failed.');
@@ -54,9 +53,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
       <div className="bg-white shadow-lg rounded-xl p-10 w-full max-w-lg text-center">
-
         {loading ? (
           <>
             <h1 className="text-2xl font-bold mb-4">
@@ -67,9 +64,7 @@ export default function VerifyEmailPage() {
           </>
         ) : success ? (
           <>
-            <div className="text-6xl mb-4">
-              ✅
-            </div>
+            <div className="text-6xl mb-4">✅</div>
 
             <h1 className="text-3xl font-bold text-green-600 mb-4">
               Email Verified
@@ -79,17 +74,13 @@ export default function VerifyEmailPage() {
           </>
         ) : (
           <>
-            <div className="text-6xl mb-4">
-              ❌
-            </div>
+            <div className="text-6xl mb-4">❌</div>
 
             <h1 className="text-3xl font-bold text-red-600 mb-4">
               Verification Failed
             </h1>
 
-            <p className="mb-6">
-              {message}
-            </p>
+            <p className="mb-6">{message}</p>
 
             <button
               onClick={() => router.push('/login')}
@@ -99,9 +90,21 @@ export default function VerifyEmailPage() {
             </button>
           </>
         )}
-
       </div>
-
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
