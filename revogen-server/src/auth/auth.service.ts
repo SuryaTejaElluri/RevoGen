@@ -174,6 +174,77 @@ this.mailService
   }
 
 
+  async forgotPassword(email: string) {
+    // Always return success — never reveal whether email exists
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetPasswordToken: resetToken,
+          resetPasswordExpires: resetExpires,
+        },
+      });
+
+      this.mailService
+        .sendResetPasswordEmail(
+          user.email,
+          user.name,
+          `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`,
+        )
+        .catch((err) => {
+          this.logger.error(`Failed to send reset email to ${email}: ${err.message}`);
+        });
+    }
+
+    return {
+      success: true,
+      message: 'If an account exists with that email, a password reset link has been sent.',
+    };
+  }
+
+  async validateResetToken(token: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { resetPasswordToken: token },
+    });
+
+    if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+      return { valid: false };
+    }
+
+    return { valid: true };
+  }
+
+  async resetPassword(token: string, password: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { resetPasswordToken: token },
+    });
+
+    if (!user || !user.resetPasswordExpires || user.resetPasswordExpires < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token.');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Password updated successfully.',
+    };
+  }
+
   async verifyEmail(token: string) {
 
   const user = await this.prisma.user.findFirst({

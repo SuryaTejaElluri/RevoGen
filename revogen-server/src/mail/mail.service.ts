@@ -150,6 +150,79 @@ async sendCodingTestInvitation(
 }
 
 
+async sendResetPasswordEmail(
+  email: string,
+  name: string,
+  resetUrl: string,
+) {
+  try {
+    console.log('📧 Sending password reset email to:', email);
+
+    const info = await this.sendEmail(
+      email,
+      'Reset Your RevoGen Password',
+      `
+      <div style="font-family:Arial,sans-serif;max-width:700px;margin:auto;padding:30px">
+
+        <h1 style="color:#2563eb">RevoGen AI</h1>
+
+        <p>Hello <b>${name}</b>,</p>
+
+        <p>
+          We received a request to reset your RevoGen password.
+          Click the button below to choose a new password.
+        </p>
+
+        <br>
+
+        <a
+          href="${resetUrl}"
+          style="
+            display:inline-block;
+            background:#2563eb;
+            color:white;
+            text-decoration:none;
+            padding:14px 28px;
+            border-radius:8px;
+            font-weight:bold;
+          ">
+          Reset Password
+        </a>
+
+        <br><br>
+
+        <small>
+          This link is valid for <b>30 minutes</b>.
+          If you did not request a password reset, you can safely ignore this email.
+        </small>
+
+        <br><br>
+
+        If the button doesn't work, copy this link:
+
+        <br><br>
+
+        ${resetUrl}
+
+        <hr>
+
+        <p style="color:#666">
+          Team RevoGen AI
+        </p>
+
+      </div>
+      `,
+    );
+
+    console.log('✅ Password reset email sent');
+    return info.data;
+  } catch (err) {
+    console.error('❌ Password reset email failed');
+    console.error(err);
+    throw err;
+  }
+}
+
 async sendVerificationEmail(
   email: string,
   name: string,

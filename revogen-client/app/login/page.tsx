@@ -552,7 +552,7 @@ function LoginContent() {
               </div>
             </div>
 
-            <a href="#" className="rg-forgot">Forgot password?</a>
+            <a href="/forgot-password" className="rg-forgot">Forgot password?</a>
 
             <button
               className="rg-btn-submit"

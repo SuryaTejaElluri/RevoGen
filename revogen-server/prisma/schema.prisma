@@ -20,6 +20,8 @@ model User {
   isVerified               Boolean             @default(false)
   verificationToken        String?
   verificationTokenExpires DateTime?
+  resetPasswordToken       String?
+  resetPasswordExpires     DateTime?
   adminCredits             AdminCredits?
   attempts                 Attempt[]
   codingAttempts           CodingAttempt[]
