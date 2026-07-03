@@ -689,6 +689,14 @@ export default function AssignedTestsPage() {
   const [filter, setFilter] = useState<FilterType>('ALL');
   const router = useRouter();
 
+  // Auth guard — redirect unauthenticated visitors to login, preserving the destination
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      router.replace('/login?redirect=/assigned-tests');
+    }
+  }, [router]);
+
   const startCodingTest = async (codingTestId: string, securityLevel?: string) => {
     try {
       const token = localStorage.getItem('access_token');

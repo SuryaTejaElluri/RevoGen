@@ -222,6 +222,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [dashboard, setDashboard] = useState<any>(null);
   const [isDark, setIsDark] = useState(false);
+  const [pendingTests, setPendingTests] = useState<{ id: string; title: string; duration: number; type: 'MCQ' | 'CODING'; securityLevel?: string }[]>([]);
+  const [showTestsPopup, setShowTestsPopup] = useState(false);
 
   const theme = isDark ? themes.dark : themes.light;
 
@@ -238,6 +240,36 @@ export default function DashboardPage() {
         setDashboard(data);
       })
       .catch(console.error);
+
+    // Fetch pending assigned tests for the popup notification
+    const fetchPendingTests = async () => {
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
+        const [mcqRes, codingRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/tests/assigned`, { headers }),
+          fetch(`${API_BASE_URL}/coding-tests/assigned`, { headers }),
+        ]);
+        const mcqData = mcqRes.ok ? await mcqRes.json() : [];
+        const codingData = codingRes.ok ? await codingRes.json() : [];
+        const pending = [
+          ...mcqData.map((t: any) => ({ id: t.id, title: t.title, duration: t.duration, type: 'MCQ' as const })),
+          ...codingData.filter((t: any) => !t.attempted).map((t: any) => ({
+            id: t.id, title: t.title, duration: t.duration,
+            type: 'CODING' as const, securityLevel: t.securityLevel,
+          })),
+        ];
+        if (pending.length > 0) {
+          setPendingTests(pending);
+          // Only show popup once per session
+          const shownKey = 'rg_tests_popup_shown';
+          if (!sessionStorage.getItem(shownKey)) {
+            setTimeout(() => setShowTestsPopup(true), 1200);
+            sessionStorage.setItem(shownKey, '1');
+          }
+        }
+      } catch { /* swallow */ }
+    };
+    fetchPendingTests();
   }, [router]);
 
   if (!dashboard) {
@@ -292,6 +324,12 @@ export default function DashboardPage() {
         .dash-card {
           animation: fadeUp 0.4s ease both;
         }
+        @keyframes overlayIn { from{opacity:0} to{opacity:1} }
+        @keyframes popupSlideUp { from{opacity:0;transform:translateY(40px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+        @keyframes bellRing { 0%,100%{transform:rotate(0)} 15%{transform:rotate(18deg)} 30%{transform:rotate(-16deg)} 45%{transform:rotate(12deg)} 60%{transform:rotate(-8deg)} 75%{transform:rotate(4deg)} }
+        @keyframes badgePop { from{opacity:0;transform:scale(0)} to{opacity:1;transform:scale(1)} }
+        @keyframes rowSlide { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes pulseRing { 0%{transform:scale(1);opacity:.6} 100%{transform:scale(1.9);opacity:0} }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: theme.bg, transition: 'background 0.3s, color 0.3s' }}>
@@ -540,6 +578,182 @@ export default function DashboardPage() {
 
         </div>
       </div>
+
+      {/* ── Assigned Tests Notification Popup ── */}
+      {showTestsPopup && (
+        <div
+          onClick={() => setShowTestsPopup(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.55)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+            animation: 'overlayIn .25s ease',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: isDark ? '#141827' : '#ffffff',
+              border: `1px solid ${isDark ? '#252C45' : '#E2E6F0'}`,
+              borderRadius: '24px',
+              padding: '36px',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: isDark
+                ? '0 40px 100px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.05) inset'
+                : '0 40px 100px rgba(79,110,247,.15), 0 0 0 1px rgba(0,0,0,.04)',
+              animation: 'popupSlideUp .38s cubic-bezier(.34,1.56,.64,1)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Gradient top strip */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: '3px',
+              background: `linear-gradient(90deg, ${theme.gradientStart}, ${theme.gradientEnd})`,
+            }} />
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowTestsPopup(false)}
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                width: 32, height: 32, borderRadius: '50%',
+                background: isDark ? '#252C45' : '#F0F2F8',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: theme.textMuted, fontSize: '16px',
+                transition: 'background .2s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = isDark ? '#2d3659' : '#E2E6F0')}
+              onMouseLeave={e => (e.currentTarget.style.background = isDark ? '#252C45' : '#F0F2F8')}
+            >✕</button>
+
+            {/* Bell icon with ring animation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{
+                  position: 'absolute', inset: '-6px', borderRadius: '50%',
+                  border: `2px solid ${theme.accent}`,
+                  animation: 'pulseRing 1.8s ease-out .5s infinite',
+                }} />
+                <div style={{
+                  width: 56, height: 56, borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${theme.gradientStart}22, ${theme.gradientEnd}22)`,
+                  border: `1px solid ${theme.accent}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '26px',
+                  animation: 'bellRing .8s ease .3s both',
+                }}>🔔</div>
+                {/* Badge count */}
+                <div style={{
+                  position: 'absolute', top: -6, right: -6,
+                  width: 22, height: 22, borderRadius: '50%',
+                  background: theme.danger,
+                  color: '#fff', fontSize: '11px', fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `2px solid ${isDark ? '#141827' : '#fff'}`,
+                  animation: 'badgePop .4s cubic-bezier(.34,1.56,.64,1) .6s both',
+                }}>{pendingTests.length}</div>
+              </div>
+              <div>
+                <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: theme.accent, marginBottom: '4px' }}>
+                  Action Required
+                </p>
+                <h2 style={{ fontSize: '20px', fontWeight: 800, color: theme.text, letterSpacing: '-0.02em', margin: 0 }}>
+                  You have {pendingTests.length} pending {pendingTests.length === 1 ? 'assessment' : 'assessments'}!
+                </h2>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '14px', color: theme.textMuted, lineHeight: 1.6, marginBottom: '20px' }}>
+              Your recruiter has assigned the following {pendingTests.length === 1 ? 'test' : 'tests'} to you. Complete {pendingTests.length === 1 ? 'it' : 'them'} before the deadline.
+            </p>
+
+            {/* Test list */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px' }}>
+              {pendingTests.slice(0, 4).map((t, i) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px 14px',
+                    borderRadius: '12px',
+                    background: isDark ? '#1A1F33' : '#F7F8FC',
+                    border: `1px solid ${isDark ? '#252C45' : '#E2E6F0'}`,
+                    animation: `rowSlide .3s ease ${i * 0.07 + 0.3}s both`,
+                  }}
+                >
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
+                    background: t.type === 'CODING'
+                      ? (isDark ? '#1A0F33' : '#F3EFFE')
+                      : (isDark ? '#1A2040' : '#EEF1FE'),
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '16px',
+                  }}>{t.type === 'CODING' ? '💻' : '📝'}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: theme.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {t.title}
+                    </p>
+                    <p style={{ margin: 0, fontSize: '11px', color: theme.textMuted, fontWeight: 500, marginTop: '2px' }}>
+                      {t.type === 'CODING' ? 'Coding' : 'MCQ'} · {t.duration} mins
+                    </p>
+                  </div>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em',
+                    textTransform: 'uppercase', padding: '3px 8px', borderRadius: '20px',
+                    background: isDark ? '#2B2010' : '#FFFBEB',
+                    color: theme.warning, flexShrink: 0,
+                  }}>Pending</span>
+                </div>
+              ))}
+              {pendingTests.length > 4 && (
+                <p style={{ margin: 0, fontSize: '12px', color: theme.textMuted, textAlign: 'center', fontWeight: 600 }}>
+                  +{pendingTests.length - 4} more test{pendingTests.length - 4 > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => { setShowTestsPopup(false); router.push('/assigned-tests'); }}
+                style={{
+                  flex: 1, padding: '13px',
+                  background: `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientEnd})`,
+                  color: '#fff', border: 'none', borderRadius: '12px',
+                  fontWeight: 700, fontSize: '14px', cursor: 'pointer',
+                  boxShadow: `0 4px 20px ${theme.accent}40`,
+                  transition: 'opacity .2s, transform .2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = '.88'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                🚀 Start Now
+              </button>
+              <button
+                onClick={() => setShowTestsPopup(false)}
+                style={{
+                  padding: '13px 20px',
+                  background: isDark ? '#1A1F33' : '#F0F2F8',
+                  color: theme.textMuted, border: `1px solid ${theme.border}`,
+                  borderRadius: '12px', fontWeight: 600, fontSize: '14px',
+                  cursor: 'pointer', transition: 'background .2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = isDark ? '#252C45' : '#E2E6F0')}
+                onMouseLeave={e => (e.currentTarget.style.background = isDark ? '#1A1F33' : '#F0F2F8')}
+              >
+                Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

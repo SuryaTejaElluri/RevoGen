@@ -91,6 +91,7 @@ export default function AssignPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [search, setSearch] = useState<string>('');
+  const [showInviteSuccess, setShowInviteSuccess] = useState<{ count: number; emails: string[] } | null>(null);
 
   // Credit state
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
@@ -239,9 +240,7 @@ export default function AssignPage() {
       await fetchInvitations();
       await fetchBalance(); // refresh wallet after deduction
       setEmails('');
-      setSuccess(`Successfully invited ${emailList.length} candidate(s)!`);
-
-      setTimeout(() => setSuccess(null), 3000);
+      setShowInviteSuccess({ count: emailList.length, emails: emailList });
     } catch (err: any) {
       setError(err.message || 'Failed to send one or more invitations.');
     } finally {
@@ -963,6 +962,107 @@ export default function AssignPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Invite Success Modal ── */}
+      {showInviteSuccess && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', animation: 'fadeInBg .25s ease' }}
+          onClick={() => setShowInviteSuccess(null)}
+        >
+          <style>{`
+            @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalPopIn { from { opacity: 0; transform: scale(.88) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+            @keyframes mailFloat { 0%,100%{transform:translateY(0) rotate(-2deg)} 50%{transform:translateY(-8px) rotate(2deg)} }
+            @keyframes checkDraw { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+            @keyframes ripple { 0%{transform:scale(1);opacity:.5} 100%{transform:scale(2.2);opacity:0} }
+            @keyframes tagSlide { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+          `}</style>
+          <div
+            className="relative w-full max-w-md rounded-3xl border border-slate-700/60 bg-slate-900 shadow-2xl shadow-black/50 p-8 text-center overflow-hidden"
+            style={{ animation: 'modalPopIn .38s cubic-bezier(.34,1.56,.64,1)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Background glow */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.12),transparent_60%)]" />
+            <div className="pointer-events-none absolute -top-16 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-blue-500/15 blur-3xl" />
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowInviteSuccess(null)}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-slate-800/80 ring-1 ring-slate-700/60 flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-700 transition-all"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Animated icon with ripple */}
+            <div className="relative mx-auto h-20 w-20 mb-6">
+              <div className="absolute inset-0 rounded-full bg-blue-500/20" style={{ animation: 'ripple 1.8s ease-out .3s infinite' }} />
+              <div className="absolute inset-0 rounded-full bg-blue-500/10" style={{ animation: 'ripple 1.8s ease-out .6s infinite' }} />
+              <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-blue-500/30 to-blue-600/20 ring-2 ring-blue-400/40 flex items-center justify-center" style={{ animation: 'mailFloat 3s ease-in-out infinite' }}>
+                <Mail className="h-9 w-9 text-blue-300" />
+              </div>
+            </div>
+
+            {/* Success checkmark row */}
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="shrink-0">
+                <circle cx="11" cy="11" r="10" fill="rgba(16,185,129,0.15)" stroke="rgba(52,211,153,0.5)" strokeWidth="1.5" />
+                <path d="M7 11l3 3 5-5" stroke="#34d399" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  strokeDasharray="60" style={{ strokeDashoffset: 0, animation: 'checkDraw .4s ease .3s both' }} />
+              </svg>
+              <span className="text-sm font-semibold text-emerald-400">Invitations sent</span>
+            </div>
+
+            <h2 className="text-2xl font-bold tracking-tight text-white mb-2">
+              {showInviteSuccess.count === 1
+                ? 'Candidate invited!'
+                : `${showInviteSuccess.count} candidates invited!`}
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">
+              {showInviteSuccess.count === 1
+                ? 'The candidate will receive an invitation email with a unique access link to the assessment.'
+                : `All ${showInviteSuccess.count} candidates will receive invitation emails with unique access links to the assessment.`}
+            </p>
+
+            {/* Email tags */}
+            {showInviteSuccess.emails.length <= 5 && (
+              <div className="flex flex-wrap gap-2 justify-center mb-6">
+                {showInviteSuccess.emails.map((em, i) => (
+                  <span
+                    key={em}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/80 ring-1 ring-slate-700/50 px-3 py-1.5 text-xs font-medium text-slate-300"
+                    style={{ animation: `tagSlide .3s ease ${i * 0.07 + 0.2}s both` }}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                    {em}
+                  </span>
+                ))}
+              </div>
+            )}
+            {showInviteSuccess.emails.length > 5 && (
+              <div className="mb-6 rounded-xl bg-slate-800/50 ring-1 ring-slate-700/40 px-4 py-3 text-sm text-slate-400">
+                <span className="text-white font-semibold">{showInviteSuccess.emails.length}</span> invitation emails dispatched.
+              </div>
+            )}
+
+            {/* Info strip */}
+            <div className="flex items-start gap-3 rounded-xl bg-blue-500/8 ring-1 ring-blue-400/20 px-4 py-3 text-left mb-6">
+              <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+              <div className="text-xs text-slate-400 leading-relaxed">
+                Each candidate receives a <span className="text-slate-200 font-medium">unique secure link</span> that is valid for the assessment. Track their progress in the table below.
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowInviteSuccess(null)}
+              className="w-full rounded-xl bg-gradient-to-b from-blue-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 hover:from-blue-400 hover:to-blue-500 hover:shadow-blue-500/40 transition-all"
+            >
+              Got it — view candidates
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -1,13 +1,15 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/api';
 
-
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || null;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,26 +26,20 @@ export default function LoginPage() {
     localStorage.setItem('rg_theme', dark ? 'dark' : 'light');
   }, [dark]);
 
+  // Already logged in — respect any redirect param
   useEffect(() => {
-  const token = localStorage.getItem("access_token");
-  const role = localStorage.getItem("role");
+    const token = localStorage.getItem('access_token');
+    const role = localStorage.getItem('role');
+    if (!token) return;
+    if (redirectTo) { router.replace(redirectTo); return; }
+    if (role === 'SUPER_ADMIN') router.replace('/pro-admin');
+    else if (role === 'ADMIN') router.replace('/admin');
+    else router.replace('/dashboard');
+  }, [router, redirectTo]);
 
-  if (!token) return;
-
-  if (role === "SUPER_ADMIN") {
-    router.replace("/pro-admin");
-  } else if (role === "ADMIN") {
-    router.replace("/admin");
-  } else {
-    router.replace("/dashboard");
-  }
-}, [router]);
   const login = async () => {
     setError('');
-    if (!email || !password) {
-      setError('Please fill in all fields.');
-      return;
-    }
+    if (!email || !password) { setError('Please fill in all fields.'); return; }
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -52,21 +48,13 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       const data = await response.json();
-      if (!response.ok) {
-        setError(data.message || 'Login failed. Check your credentials.');
-        return;
-      }
+      if (!response.ok) { setError(data.message || 'Login failed. Check your credentials.'); return; }
       localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem("role", data.role);
-      if (data.role === 'SUPER_ADMIN') {
-  router.push('/pro-admin');
-}
-else if (data.role === 'ADMIN') {
-  router.push('/admin');
-}
-else {
-  router.push('/dashboard');
-}
+      localStorage.setItem('role', data.role);
+      // Honor redirect param for candidates; admins always go to their panel
+      if (data.role === 'SUPER_ADMIN') router.push('/pro-admin');
+      else if (data.role === 'ADMIN') router.push('/admin');
+      else router.push(redirectTo || '/dashboard');
     } catch {
       setError('Server error. Please try again.');
     } finally {
@@ -598,5 +586,18 @@ else {
         </div>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9f8f6' }}>
+        <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #e0ddd8', borderTopColor: '#1a6cf6', animation: 'spin .7s linear infinite' }} />
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

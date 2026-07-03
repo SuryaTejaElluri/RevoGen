@@ -21,6 +21,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [dark, setDark] = useState(false);
+  const [showMailPopup, setShowMailPopup] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('rg_theme');
@@ -59,7 +60,7 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'Registration failed. Please try again.'); return; }
-      router.push('/login?registered=1');
+      setShowMailPopup(true);
     } catch {
       setError('Server error. Please try again.');
     } finally {
@@ -205,6 +206,46 @@ export default function RegisterPage() {
         .rg-rec-note { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 10px; font-size: .8rem; line-height: 1.5; margin-bottom: 18px; background: rgba(26,108,246,.08); border: 1px solid rgba(26,108,246,.2); color: #4d8ff8; }
 
         @media (max-width: 780px) { .rg-left { display: none; } .rg-right { padding: 80px 24px 40px; align-items: flex-start; } .rg-row { grid-template-columns: 1fr; } }
+
+        /* ── Mail confirmation popup ── */
+        .rg-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 24px; animation: fadeInOverlay .25s ease; }
+        @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+        .rg-popup { background: #fff; border-radius: 20px; padding: 44px 40px 36px; max-width: 420px; width: 100%; text-align: center; box-shadow: 0 32px 80px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.04); animation: popupIn .35s cubic-bezier(.34,1.56,.64,1); position: relative; }
+        .rg-root.dark .rg-popup { background: #1a1816; border: 1px solid #2e2c2a; box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.05); }
+        @keyframes popupIn { from { opacity: 0; transform: scale(.85) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .rg-popup-icon { width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #e8faf3 0%, #d1f5e8 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; animation: iconBounce .6s cubic-bezier(.34,1.56,.64,1) .15s both; }
+        .rg-root.dark .rg-popup-icon { background: linear-gradient(135deg, rgba(14,159,110,.2) 0%, rgba(14,159,110,.1) 100%); }
+        @keyframes iconBounce { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+        .rg-popup-icon svg { width: 38px; height: 38px; }
+        .rg-popup-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 20px; }
+        .rg-popup-dot { width: 8px; height: 8px; border-radius: 50%; background: #0e9f6e; animation: dotPop .4s cubic-bezier(.34,1.56,.64,1) both; }
+        .rg-popup-dot:nth-child(1) { animation-delay: .3s; }
+        .rg-popup-dot:nth-child(2) { animation-delay: .42s; background: #3ecf8e; }
+        .rg-popup-dot:nth-child(3) { animation-delay: .54s; background: #7ae0b8; }
+        @keyframes dotPop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+        .rg-popup-title { font-size: 1.45rem; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px; animation: fadeSlideUp .35s ease .25s both; }
+        .rg-root.light .rg-popup-title { color: #181716; }
+        .rg-root.dark  .rg-popup-title { color: #f0ede8; }
+        .rg-popup-body { font-size: .88rem; line-height: 1.65; margin-bottom: 28px; animation: fadeSlideUp .35s ease .32s both; }
+        .rg-root.light .rg-popup-body { color: #6a6663; }
+        .rg-root.dark  .rg-popup-body { color: #7a7673; }
+        .rg-popup-body strong { font-weight: 700; }
+        .rg-root.light .rg-popup-body strong { color: #181716; }
+        .rg-root.dark  .rg-popup-body strong { color: #d4d0cb; }
+        .rg-popup-email-box { display: inline-flex; align-items: center; gap: 8px; background: #f0ede8; border-radius: 100px; padding: 7px 14px 7px 10px; font-size: .8rem; font-weight: 600; color: #3a3835; margin-bottom: 20px; animation: fadeSlideUp .35s ease .38s both; }
+        .rg-root.dark .rg-popup-email-box { background: #252321; color: #9a9896; }
+        .rg-popup-email-box svg { width: 14px; height: 14px; color: #0e9f6e; flex-shrink: 0; }
+        .rg-popup-tips { text-align: left; border-radius: 12px; padding: 14px 16px; margin-bottom: 24px; animation: fadeSlideUp .35s ease .44s both; }
+        .rg-root.light .rg-popup-tips { background: #f8f7f5; border: 1px solid #e5e2dc; }
+        .rg-root.dark  .rg-popup-tips { background: #141210; border: 1px solid #2a2826; }
+        .rg-popup-tip { display: flex; align-items: center; gap: 8px; font-size: .77rem; margin-bottom: 7px; }
+        .rg-popup-tip:last-child { margin-bottom: 0; }
+        .rg-popup-tip span.dot { width: 5px; height: 5px; border-radius: 50%; background: #0e9f6e; flex-shrink: 0; }
+        .rg-root.light .rg-popup-tip { color: #6a6663; }
+        .rg-root.dark  .rg-popup-tip { color: #5a5753; }
+        .rg-popup-btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700; cursor: pointer; background: #0e9f6e; color: #fff; transition: all .2s; animation: fadeSlideUp .35s ease .5s both; }
+        .rg-popup-btn:hover { background: #0c8a60; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,159,110,.3); }
+        @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       <div className={`rg-root ${d ? 'dark' : 'light'}`}>
@@ -366,6 +407,53 @@ export default function RegisterPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Email confirmation popup ── */}
+      {showMailPopup && (
+        <div className="rg-popup-overlay" onClick={() => { setShowMailPopup(false); router.push('/login?registered=1'); }}>
+          <div className="rg-popup" onClick={e => e.stopPropagation()}>
+            {/* Icon */}
+            <div className="rg-popup-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0e9f6e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="3" />
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+              </svg>
+            </div>
+
+            {/* Animated dots */}
+            <div className="rg-popup-dots">
+              <div className="rg-popup-dot" /><div className="rg-popup-dot" /><div className="rg-popup-dot" />
+            </div>
+
+            <h2 className="rg-popup-title">Check your inbox!</h2>
+
+            <p className="rg-popup-body">
+              Your account has been created successfully. We've sent a <strong>confirmation link</strong> to your email address.
+            </p>
+
+            <div className="rg-popup-email-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
+              </svg>
+              {email || 'your email'}
+            </div>
+
+            <div className="rg-popup-tips">
+              {[
+                "Check your spam or junk folder if you don't see it.",
+                'The confirmation link expires in 24 hours.',
+                'Click the link to activate your account.',
+              ].map((tip, i) => (
+                <div key={i} className="rg-popup-tip"><span className="dot" />{tip}</div>
+              ))}
+            </div>
+
+            <button className="rg-popup-btn" onClick={() => { setShowMailPopup(false); router.push('/login?registered=1'); }}>
+              Got it — go to login →
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
