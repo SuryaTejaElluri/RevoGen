@@ -54,19 +54,34 @@ const verificationTokenExpires = new Date(
   verificationTokenExpires,
 });
 
-    this.logger.log(`Registered user: ${dto.email} | role: ${dto.role ?? 'USER'}`);
-
-    const { password, ...safeUser } = user;
-    await this.mailService.sendVerificationEmail(
-  user.email,
-  user.name,
-  `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`,
+this.logger.log(
+  `Registered user: ${dto.email} | role: ${dto.role ?? 'USER'}`,
 );
 
+const { password, ...safeUser } = user;
+
+// Send verification email in the background
+console.log("📧 Sending verification email to:", user.email);
+
+this.mailService
+  .sendVerificationEmail(
+    user.email,
+    user.name,
+    `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`,
+  )
+  .then(() => {
+    console.log("✅ Verification email sent");
+  })
+  .catch((err) => {
+    console.error("❌ Verification email failed");
+    console.error(err);
+  });
+
     return {
-      message: 'User registered successfully',
-      user: safeUser,
-    };
+  message:
+    'Registration successful. Please check your email to verify your account.',
+  user: safeUser,
+};
   }
 
   async login(dto: LoginDto) {

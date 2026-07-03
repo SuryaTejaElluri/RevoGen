@@ -1,40 +1,66 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import axios from "axios";
 
 @Injectable()
 export class MailService {
-  private transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+
+  private async sendEmail(
+  to: string,
+  subject: string,
+  html: string,
+) {
+  return axios.post(
+    'https://api.brevo.com/v3/smtp/email',
+    {
+      sender: {
+        name: 'RevoGen AI',
+        email: 'surya07e@gmail.com',
+      },
+      to: [
+        {
+          email: to,
+        },
+      ],
+      subject,
+      htmlContent: html,
     },
-  });
+    {
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+      },
+    },
+  );
+}
+  
 
  async sendTestEmail(email: string) {
   try {
-    const info = await this.transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: email,
-      subject: "✅ RevoGen AI Email Test",
-      html: `
-        <h2>RevoGen AI</h2>
-        <p>Your email service is configured successfully.</p>
-        <hr/>
-        <p>If you received this email, Brevo + Nodemailer is working correctly.</p>
+    const info = await this.sendEmail(
+      email,
+      "✅ RevoGen AI Email Test",
+      `
+      <h2>RevoGen AI</h2>
+
+      <p>Your email service is configured successfully.</p>
+
+      <hr/>
+
+      <p>If you received this email, Brevo API is working correctly.</p>
       `,
-    });
+    );
 
-    console.log(info);
+    console.log("✅ Test email sent");
 
-    return info;
+    return info.data;
+
   } catch (err) {
-    console.error("MAIL ERROR:", err);
+    console.error("❌ Test email failed");
+    console.error(err);
+
     throw err;
   }
-
 }
 
 async sendCodingTestInvitation(
@@ -48,11 +74,10 @@ async sendCodingTestInvitation(
   try {
     console.log("📧 Sending coding invitation to:", email);
 
-    const info = await this.transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: email,
-      subject: `You're Invited to "${testTitle}" | RevoGen AI`,
-      html: `
+    const info = await this.sendEmail(
+  email,
+  `You're Invited to "${testTitle}" | RevoGen AI`,
+  `
       <div style="font-family:Arial,sans-serif;max-width:700px;margin:auto;padding:30px">
 
         <h1 style="color:#2563eb">RevoGen AI</h1>
@@ -109,8 +134,8 @@ async sendCodingTestInvitation(
         </p>
 
       </div>
-      `,
-    });
+  `,
+);
 
     console.log("✅ Invitation email sent.");
     console.log(info);
@@ -133,11 +158,10 @@ async sendVerificationEmail(
   try {
     console.log("📧 Sending verification email to:", email);
 
-    const info = await this.transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to: email,
-      subject: "Verify Your RevoGen Account",
-      html: `
+    const info = await this.sendEmail(
+      email,
+      "Verify Your RevoGen Account",
+      `
       <div style="font-family:Arial,sans-serif;max-width:700px;margin:auto;padding:30px">
 
         <h1 style="color:#2563eb">
@@ -192,17 +216,19 @@ async sendVerificationEmail(
 
       </div>
       `,
-    });
+    );
 
     console.log("✅ Verification email sent");
 
-    return info;
+    return info.data;
+
   } catch (err) {
     console.error("❌ Verification email failed");
     console.error(err);
+
     throw err;
   }
 }
-
-
 }
+
+

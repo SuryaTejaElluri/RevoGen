@@ -7,6 +7,330 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                       String              @id @default(uuid())
+  name                     String
+  email                    String              @unique
+  password                 String?
+  provider                 String              @default("credentials")
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  role                     String              @default("USER")
+  phone                    String?
+  isVerified               Boolean             @default(false)
+  verificationToken        String?
+  verificationTokenExpires DateTime?
+  adminCredits             AdminCredits?
+  attempts                 Attempt[]
+  codingAttempts           CodingAttempt[]
+  codingInvitations        CodingInvitation[]
+  codingTests              CodingTest[]
+  creditTransactions       CreditTransaction[]
+  profile                  Profile?
+  resumes                  Resume[]
+  tests                    Test[]
+}
+
+model Profile {
+  id             String   @id @default(uuid())
+  college        String?
+  branch         String?
+  graduationYear Int?
+  userId         String   @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Resume {
+  id        String          @id @default(uuid())
+  title     String
+  fileUrl   String
+  fileType  String
+  isActive  Boolean         @default(true)
+  userId    String
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis  ResumeAnalysis?
+}
+
+model ResumeAnalysis {
+  id            String   @id @default(uuid())
+  skills        Json?
+  education     Json?
+  projects      Json?
+  resumeId      String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  rawText       String?
+  atsScore      Int?     @default(0)
+  missingSkills Json?
+  resume        Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+}
+
+model Test {
+  id            String           @id @default(uuid())
+  title         String
+  duration      Int
+  createdAt     DateTime         @default(now())
+  isPractice    Boolean          @default(false)
+  securityLevel SecurityLevel    @default(BASIC)
+  createdById   String?
+  attempts      Attempt[]
+  questions     Question[]
+  createdBy     User?            @relation(fields: [createdById], references: [id])
+  invitations   TestInvitation[]
+  modules       TestModule[]
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  question      String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String
+  testId        String
+  createdAt     DateTime @default(now())
+  test          Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+}
+
+model Attempt {
+  id                   String            @id @default(uuid())
+  score                Int
+  totalQuestions       Int
+  percentage           Float
+  tabSwitches          Int               @default(0)
+  fullscreenViolations Int               @default(0)
+  userId               String
+  testId               String
+  createdAt            DateTime          @default(now())
+  copyAttempts         Int               @default(0)
+  rightClickAttempts   Int               @default(0)
+  test                 Test              @relation(fields: [testId], references: [id], onDelete: Cascade)
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proctoringReport     ProctoringReport?
+}
+
+model QuestionBank {
+  id            String   @id @default(uuid())
+  category      String
+  question      String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String
+  createdAt     DateTime @default(now())
+}
+
+model TestInvitation {
+  id        String   @id @default(uuid())
+  email     String
+  status    String   @default("PENDING")
+  testId    String
+  createdAt DateTime @default(now())
+  test      Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([email, testId])
+}
+
+model TestModule {
+  id            String @id @default(uuid())
+  module        String
+  questionCount Int
+  testId        String
+  test          Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
+}
+
+model ProctoringReport {
+  id                   String   @id @default(uuid())
+  attemptId            String   @unique
+  cameraEnabled        Boolean  @default(false)
+  microphoneEnabled    Boolean  @default(false)
+  tabSwitches          Int      @default(0)
+  fullscreenViolations Int      @default(0)
+  idleEvents           Int      @default(0)
+  resizeEvents         Int      @default(0)
+  riskScore            Int      @default(0)
+  securityScore        Int      @default(100)
+  createdAt            DateTime @default(now())
+  faceMissingEvents    Int      @default(0)
+  focusLossEvents      Int      @default(0)
+  multipleFaceEvents   Int      @default(0)
+  noiseWarnings        Int      @default(0)
+  possibleMultiMonitor Boolean  @default(false)
+  suspicionLevel       String   @default("LOW")
+  copyAttempts         Int      @default(0)
+  rightClickAttempts   Int      @default(0)
+  attempt              Attempt  @relation(fields: [attemptId], references: [id])
+}
+
+model CodingTest {
+  id            String               @id @default(uuid())
+  title         String
+  description   String?
+  duration      Int
+  securityLevel CodingSecurityLevel
+  createdById   String
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  attempts      CodingAttempt[]
+  invitations   CodingInvitation[]
+  createdBy     User                 @relation(fields: [createdById], references: [id])
+  questions     CodingTestQuestion[]
+}
+
+model CodingQuestionBank {
+  id              String                   @id @default(uuid())
+  title           String
+  category        String
+  difficulty      CodingDifficulty
+  description     String
+  inputFormat     String?
+  outputFormat    String?
+  constraints     String?
+  examples        Json?
+  starterCodes    Json?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  slug            String                   @unique
+  floatPrecision  Int                      @default(6)
+  outputValidator OutputValidator          @default(EXACT)
+  testCases       CodingQuestionTestCase[]
+  submissions     CodingSubmission[]
+  questions       CodingTestQuestion[]
+}
+
+model CodingQuestionTestCase {
+  id             String             @id @default(uuid())
+  questionId     String
+  input          String
+  expectedOutput String
+  explanation    String?
+  isHidden       Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  question       CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model CodingTestQuestion {
+  id           String             @id @default(uuid())
+  codingTestId String
+  questionId   String
+  order        Int
+  scoreWeight  Int                @default(100)
+  codingTest   CodingTest         @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+  question     CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([codingTestId, questionId])
+}
+
+model CodingInvitation {
+  id             String     @id @default(uuid())
+  codingTestId   String
+  candidateEmail String
+  userId         String?
+  status         String     @default("PENDING")
+  invitedAt      DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  codingTest     CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+  user           User?      @relation(fields: [userId], references: [id])
+
+  @@unique([codingTestId, candidateEmail])
+}
+
+model CodingAttempt {
+  id                 String                @id @default(uuid())
+  codingTestId       String
+  userId             String
+  candidateEmail     String
+  status             String                @default("IN_PROGRESS")
+  totalQuestions     Int                   @default(0)
+  completedQuestions Int                   @default(0)
+  totalScore         Int                   @default(0)
+  percentage         Float                 @default(0)
+  startedAt          DateTime              @default(now())
+  submittedAt        DateTime?
+  createdAt          DateTime              @default(now())
+  riskLevel          String?               @default("LOW")
+  riskScore          Int?                  @default(0)
+  codingTest         CodingTest            @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
+  user               User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  securityEvents     CodingSecurityEvent[]
+  submissions        CodingSubmission[]
+
+  @@unique([codingTestId, userId])
+}
+
+model CodingSubmission {
+  id               String             @id @default(uuid())
+  attemptId        String
+  questionId       String
+  language         String
+  status           String
+  passedCases      Int                @default(0)
+  totalCases       Int                @default(0)
+  score            Int                @default(0)
+  submissionNumber Int                @default(1)
+  createdAt        DateTime           @default(now())
+  executionTime    Float?
+  memoryUsed       Int?
+  sourceCode       String?
+  attempt          CodingAttempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model CodingSecurityEvent {
+  id            String        @id @default(uuid())
+  attemptId     String
+  eventType     String
+  details       Json?
+  createdAt     DateTime      @default(now())
+  screenshotUrl String?
+  attempt       CodingAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+}
+
+/// One wallet per admin user. Balance defaults to 20 (welcome bonus).
+model AdminCredits {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Every credit movement (purchase, usage, bonus, refund, admin adjustment).
+model CreditTransaction {
+  id           String                @id @default(uuid())
+  userId       String
+  type         CreditTransactionType
+  credits      Int
+  balanceAfter Int
+  description  String
+  referenceId  String?
+  createdAt    DateTime              @default(now())
+  metadata     Json?
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Purchasable credit packs shown in the billing page.
+model CreditPack {
+  id           String   @id @default(uuid())
+  name         String
+  credits      Int
+  bonusCredits Int      @default(0)
+  price        Float
+  description  String?
+  isPopular    Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  displayOrder Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
 enum SecurityLevel {
   BASIC
   PRO
@@ -31,261 +355,6 @@ enum CodingCategory {
   BINARY_SEARCH
   RECURSION
   MATH
-}
-
-model User {
-  id       String  @id @default(uuid())
-  name     String
-  email    String  @unique
-  password String?
-  phone    String?
-  provider String  @default("credentials")
-
-  role String @default("USER")
-
-  // ==========================
-  // Email Verification
-  // ==========================
-  isVerified Boolean @default(false)
-
-  verificationToken String?
-
-  verificationTokenExpires DateTime?
-
-  codingTests CodingTest[]
-  tests       Test[]
-
-  profile  Profile?
-  resumes  Resume[]
-  attempts Attempt[]
-
-  codingInvitations CodingInvitation[]
-  codingAttempts    CodingAttempt[]
-
-  adminCredits       AdminCredits?
-  creditTransactions CreditTransaction[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Profile {
-  id String @id @default(uuid())
-
-  college        String?
-  branch         String?
-  graduationYear Int?
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Resume {
-  id String @id @default(uuid())
-
-  title    String
-  fileUrl  String
-  fileType String
-
-  isActive Boolean @default(true)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  analysis ResumeAnalysis?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ResumeAnalysis {
-  id String @id @default(uuid())
-
-  skills    Json?
-  education Json?
-  projects  Json?
-
-  rawText String?
-
-  atsScore      Int?  @default(0)
-  missingSkills Json?
-
-  resumeId String @unique
-  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Test {
-  id String @id @default(uuid())
-
-  title String
-
-  duration Int
-
-  securityLevel SecurityLevel @default(BASIC)
-
-  modules TestModule[]
-
-  questions Question[]
-
-  attempts Attempt[]
-
-  invitations TestInvitation[]
-
-  isPractice Boolean @default(false)
-
-  createdById String?
-  createdBy    User?   @relation(fields: [createdById], references: [id])
-
-  createdAt DateTime @default(now())
-}
-
-model Question {
-  id String @id @default(uuid())
-
-  question String
-
-  optionA String
-  optionB String
-  optionC String
-  optionD String
-
-  correctAnswer String
-
-  testId String
-  test   Test   @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-model Attempt {
-  id String @id @default(uuid())
-
-  score Int
-
-  totalQuestions Int
-
-  percentage Float
-
-  tabSwitches Int @default(0)
-
-  fullscreenViolations Int @default(0)
-
-  copyAttempts Int @default(0)
-
-  rightClickAttempts Int @default(0)
-
-  proctoringReport ProctoringReport?
-
-  userId String
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  testId String
-
-  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-}
-
-model QuestionBank {
-  id String @id @default(uuid())
-
-  category String
-
-  question String
-
-  optionA String
-  optionB String
-  optionC String
-  optionD String
-
-  correctAnswer String
-
-  createdAt DateTime @default(now())
-}
-
-model TestInvitation {
-  id String @id @default(uuid())
-
-  email String
-
-  status String @default("PENDING")
-
-  testId String
-
-  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  @@unique([email, testId])
-}
-
-model TestModule {
-  id String @id @default(uuid())
-
-  module String
-
-  questionCount Int
-
-  testId String
-
-  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
-}
-
-model ProctoringReport {
-  id String @id @default(uuid())
-
-  attemptId String @unique
-
-  attempt Attempt @relation(fields: [attemptId], references: [id])
-
-  // Permissions
-
-  cameraEnabled Boolean @default(false)
-
-  microphoneEnabled Boolean @default(false)
-
-  // Existing Violations
-
-  tabSwitches Int @default(0)
-
-  fullscreenViolations Int @default(0)
-
-  idleEvents Int @default(0)
-
-  resizeEvents Int @default(0)
-
-  copyAttempts Int @default(0)
-
-  rightClickAttempts Int @default(0)
-
-  // New PRO Features
-
-  faceMissingEvents Int @default(0)
-
-  multipleFaceEvents Int @default(0)
-
-  noiseWarnings Int @default(0)
-
-  focusLossEvents Int @default(0)
-
-  possibleMultiMonitor Boolean @default(false)
-
-  // Scoring
-
-  riskScore Int @default(0)
-
-  securityScore Int @default(100)
-
-  suspicionLevel String @default("LOW")
-
-  createdAt DateTime @default(now())
 }
 
 enum CodingDifficulty {
@@ -313,266 +382,4 @@ enum CreditTransactionType {
   BONUS
   REFUND
   ADMIN
-}
-
-model CodingTest {
-  id String @id @default(uuid())
-
-  title String
-
-  description String?
-
-  duration Int
-
-  securityLevel CodingSecurityLevel
-
-  createdById String
-
-  createdBy User @relation(fields: [createdById], references: [id])
-
-  isActive Boolean @default(true)
-
-  questions CodingTestQuestion[]
-
-  invitations CodingInvitation[]
-
-  attempts CodingAttempt[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-}
-
-model CodingQuestionBank {
-  id String @id @default(uuid())
-
-  title String
-
-  slug String @unique
-
-  category String
-
-  
-
-  difficulty CodingDifficulty
-
-  description String
-
-  inputFormat String?
-
-  outputFormat String?
-
-  constraints String?
-
-  examples Json?
-
-  starterCodes Json?
-
-  outputValidator OutputValidator @default(EXACT)
-
-  floatPrecision Int @default(6)
-
-  questions CodingTestQuestion[]
-
-  submissions CodingSubmission[]
-
-  testCases CodingQuestionTestCase[]
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-}
-
-model CodingQuestionTestCase {
-  id String @id @default(uuid())
-
-  questionId String
-
-  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  input String
-
-  expectedOutput String
-
-  explanation String?
-
-  isHidden Boolean @default(false)
-
-  createdAt DateTime @default(now())
-}
-
-model CodingTestQuestion {
-  id String @id @default(uuid())
-
-  codingTestId String
-
-  questionId String
-
-  order Int
-
-  scoreWeight Int @default(100)
-
-  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
-
-  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([codingTestId, questionId])
-}
-
-
-model CodingInvitation {
-  id String @id @default(uuid())
-
-  codingTestId String
-  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
-
-  
-  candidateEmail String
-
-  userId String?
-  user User? @relation(fields: [userId], references: [id])
-
-  status String @default("PENDING")
-
-  invitedAt DateTime @default(now())
-  createdAt DateTime @default(now())
-
-  @@unique([codingTestId, candidateEmail])
-}
-
-
-model CodingAttempt {
-  id String @id @default(uuid())
-
-  codingTestId String
-  codingTest CodingTest @relation(fields: [codingTestId], references: [id], onDelete: Cascade)
-
-  userId String
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  candidateEmail String
-
-  status String @default("IN_PROGRESS")
-
-  totalQuestions Int @default(0)
-
-  completedQuestions Int @default(0)
-
-  totalScore Int @default(0)
-
-  percentage Float @default(0)
-
-  startedAt DateTime @default(now())
-
-  submittedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  // Legacy fields — kept to prevent data loss
-  riskScore  Int?     @default(0)
-  riskLevel  String?  @default("LOW")
-
-  submissions CodingSubmission[]
-
-  securityEvents CodingSecurityEvent[]
-
-
- 
-
-  @@unique([codingTestId, userId])
-}
-
-
-model CodingSubmission {
-  id String @id @default(uuid())
-
-  attemptId String
-  attempt CodingAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-
-  questionId String
-  question CodingQuestionBank @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  language String
-
-  sourceCode String? @db.Text
-
-  status String
-
-  passedCases Int @default(0)
-
-  totalCases Int @default(0)
-
-  score Int @default(0)
-
-  executionTime Float?
-
-  memoryUsed Int?
-
-  submissionNumber Int @default(1)
-
-  createdAt DateTime @default(now())
-}
-
-model CodingSecurityEvent {
-  id String @id @default(uuid())
-
-  attemptId String
-  attempt CodingAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-
-  eventType String
-
-  details Json?
-
-  screenshotUrl String?
-
-  createdAt DateTime @default(now())
-}
-
-// ─── Revo Credits — Phase 1 ───────────────────────────────────────────────────
-
-/// One wallet per admin user. Balance defaults to 20 (welcome bonus).
-model AdminCredits {
-  id      String @id @default(uuid())
-
-  userId  String @unique
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  balance Int    @default(20)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-/// Every credit movement (purchase, usage, bonus, refund, admin adjustment).
-model CreditTransaction {
-  id String @id @default(uuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type          CreditTransactionType
-  credits       Int                   // positive = credit added, negative = deducted
-  balanceAfter  Int                   // wallet balance after this transaction
-  description   String                // human-readable e.g. "PRO Coding Test Assignment"
-  referenceId   String?               // optional: codingTestId, packId, etc.
-  metadata      Json?                 // optional: { codingTestId, securityLevel, candidateCount, ... }
-
-  createdAt DateTime @default(now())
-}
-
-/// Purchasable credit packs shown in the billing page.
-model CreditPack {
-  id          String  @id @default(uuid())
-
-  name        String
-  credits     Int
-  bonusCredits Int    @default(0)
-  price       Float                   // in INR (paisa stored as float for flexibility)
-  description String?
-
-  isPopular    Boolean @default(false)
-  isActive     Boolean @default(true)
-  displayOrder Int     @default(0)
-
-  createdAt DateTime @default(now())
 }
