@@ -46,7 +46,7 @@ const css = `
   .an-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     text-decoration: none;
     flex-shrink: 0;
   }
@@ -54,16 +54,17 @@ const css = `
   .an-bar.collapsed .an-brand { justify-content: center; }
 
   .an-logo {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #6366f1, #818cf8);
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #7c6cf6 0%, #6366f1 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    box-shadow: 0 0 14px rgba(99,102,241,.45);
+    font-size: 20px;
+    box-shadow: 0 0 0 6px rgba(99,102,241,0.15), 0 4px 16px rgba(99,102,241,0.4);
     flex-shrink: 0;
+    position: relative;
   }
 
   .an-brand-text {
@@ -75,22 +76,24 @@ const css = `
   }
 
   .an-brand-name {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 800;
     color: #f1f5f9;
-    letter-spacing: -.2px;
+    letter-spacing: -.3px;
   }
 
   [data-theme='light'] .an-brand-name { color: #15171f; }
 
   .an-brand-role {
     font-size: 10px;
-    font-weight: 500;
-    color: #6366f1;
-    letter-spacing: .08em;
+    font-weight: 700;
+    color: #818cf8;
+    letter-spacing: .12em;
     text-transform: uppercase;
-    margin-top: 2px;
+    margin-top: 3px;
   }
+
+  [data-theme='light'] .an-brand-role { color: #6366f1; }
 
   /* ── Top row: brand + collapse toggle ── */
   .an-top-row {
@@ -311,10 +314,11 @@ const css = `
 `;
 
 const NAV_LINKS = [
-  { href: '/admin',              label: 'Dashboard',         icon: '⬛' },
-  { href: '/admin/tests',        label: 'Tests',             icon: '📄' },
-  { href: '/admin/Create_Tests', label: 'Create Assessment', icon: '🆕' },
-  { href: '/admin/credits',      label: 'Revo Credits',      icon: '🪙' },
+  { href: '/admin',                  label: 'Dashboard',         icon: '⬛' },
+  { href: '/admin/tests',            label: 'Tests',             icon: '📄' },
+  { href: '/admin/Create_Tests',     label: 'Create Assessment', icon: '🆕' },
+  { href: '/admin/question-bank',    label: 'Question Bank',     icon: '🗄️' },
+  { href: '/admin/credits',          label: 'Revo Credits',      icon: '🪙' },
 ];
 
 export default function AdminSidebar({
@@ -345,7 +349,13 @@ export default function AdminSidebar({
           {/* Brand + collapse toggle */}
           <div className="an-top-row">
             <Link href="/admin" className="an-brand">
-              <div className="an-logo">⚡</div>
+              <div className="an-logo">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  {/* Ø symbol — circle with diagonal slash */}
+                  <circle cx="12" cy="12" r="8" stroke="#000000" strokeWidth="2.2" fill="none"/>
+                  <line x1="5.5" y1="18.5" x2="18.5" y2="5.5" stroke="#000000" strokeWidth="2.2" strokeLinecap="round"/>
+                </svg>
+              </div>
               {!collapsed && (
                 <div className="an-brand-text">
                   <span className="an-brand-name">RevoGen AI</span>

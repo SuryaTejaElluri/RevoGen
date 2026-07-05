@@ -249,8 +249,7 @@ export default function AdminDashboard() {
     { href: '/admin/tests/new',                 icon: SI.doc,    title: 'Create MCQ Test',      accent: C.accent   },
     { href: '/admin/coding-tests/create',        icon: SI.code,   title: 'Create Coding Test',   accent: C.purple   },
     { href: '/admin/tests',                      icon: SI.grid,   title: 'All Assessments',      accent: C.accent2  },
-    { href: '/admin/questions',                  icon: SI.bars,   title: 'Question Bank',        accent: C.warning  },
-    { href: '/admin/coding-question-bank',       icon: SI.code,   title: 'Coding Question Bank', accent: '#22c55e'  },
+    { href: '/admin/question-bank',              icon: SI.bars,   title: 'Question Bank',        accent: C.warning  },
   ];
 
   return (

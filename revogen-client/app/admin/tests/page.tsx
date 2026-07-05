@@ -766,10 +766,10 @@ export default function TestsPage() {
                     <div className="test-actions">
                       {isMCQ && (
                         <>
-                          <Link href={`/admin/tests/${test.id}`} className="action-btn primary">👁 View test</Link>
                           <Link href={`/admin/tests/${test.id}/questions`} className="action-btn">❓ Manage questions</Link>
                           <Link href={`/admin/tests/${test.id}/results`} className="action-btn success-btn">📊 View results</Link>
                           <Link href={`/admin/tests/${test.id}/invite`} className="action-btn warning-btn">✉️ Assign test</Link>
+                          <span style={{ flex: 1 }} />
                           <button className="action-btn danger-btn" onClick={() => handleDeleteMcq(test.id)}>
                             🗑 Delete
                           </button>

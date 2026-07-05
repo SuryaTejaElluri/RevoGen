@@ -825,6 +825,7 @@ export default function TestPage() {
   // ── Refs ────────────────────────────────────────────────────────────────
   const submittedRef           = useRef(false);
   const videoRef               = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef        = useRef<MediaStream | null>(null); // persists stream across remounts
   const detectorRef            = useRef<FaceDetector | null>(null);
   const audioContextRef        = useRef<AudioContext | null>(null);
   const analyserRef            = useRef<AnalyserNode | null>(null);
@@ -970,9 +971,9 @@ export default function TestPage() {
     submittedRef.current = true;
     setSubmitted(true);
 
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(t => t.stop());
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(t => t.stop());
+      cameraStreamRef.current = null;
     }
 
     if (micStreamRef.current) {
@@ -994,6 +995,9 @@ export default function TestPage() {
         body: JSON.stringify({
           answers,
           riskScore,
+          // top-level fields read directly by the backend service
+          cameraEnabled,
+          microphoneEnabled,
           summary: {
             tabSwitches,
             fullscreenViolations,
@@ -1005,8 +1009,6 @@ export default function TestPage() {
             idleEvents,
             resizeEvents,
             riskLevel,
-            cameraEnabled,
-            microphoneEnabled,
             cameraDisconnectEvents,
             microphoneDisconnectEvents,
           },
@@ -1067,10 +1069,10 @@ export default function TestPage() {
 
   // ── Camera ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    let stream: MediaStream | null = null;
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        cameraStreamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.onloadedmetadata = () => {
@@ -1100,11 +1102,21 @@ export default function TestPage() {
     };
     startCamera();
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(t => t.stop());
+        cameraStreamRef.current = null;
       }
     };
   }, [addToast, recordProctorEvent, showViolationPopupFn, retryPerms]);
+
+  // ── Reattach camera stream when exam starts (video element remounts) ──────
+  useEffect(() => {
+    if (!examStarted || !cameraStreamRef.current) return;
+    if (videoRef.current) {
+      videoRef.current.srcObject = cameraStreamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [examStarted]);
 
   // ── Microphone ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1153,7 +1165,7 @@ export default function TestPage() {
   // ── Permission Gate Status Evaluator ─────────────────────────────────────
   useEffect(() => {
     if (initialCameraChecked && initialMicChecked && cameraEnabled && microphoneEnabled && !examStarted) {
-      setExamStarted(true);
+      // Don't auto-start — show confirmation screen first (examStarted set by user click)
     }
   }, [initialCameraChecked, initialMicChecked, cameraEnabled, microphoneEnabled, examStarted]);
 
@@ -1214,19 +1226,19 @@ export default function TestPage() {
           setFaceDetected(false);
 
           if (!isFaceMissingRef.current) {
-            // Start 30-second timer
+            // Start 5-second timer
             isFaceMissingRef.current = true;
             faceMissingTimerRef.current = setTimeout(() => {
               if (submittedRef.current) return;
               setFaceMissingEvents(prev => prev + 1);
-              recordProctorEvent('face_missing', 'high', 'Face absent for 30+ continuous seconds');
+              recordProctorEvent('face_missing', 'high', 'Face absent for 5+ continuous seconds');
               addToast('⚠️ Face not detected. Please return to camera.', 'danger');
               showViolationPopupFn(
                 'Face Not Detected',
-                'Your face has not been visible for an extended period. Please return to the assessment area.',
+                'Your face has not been visible for 5 seconds. Please return to the assessment area.',
                 'warning'
               );
-            }, 30000);
+            }, 5000);
           }
 
           // Reset multiple-face timer since no face
@@ -1252,19 +1264,19 @@ export default function TestPage() {
           // ── Multiple faces ────────────────────────────────────────────────
           if (faces > 1) {
             if (!isMultipleFaceRef.current) {
-              // Start 15-second timer
+              // Start 5-second timer
               isMultipleFaceRef.current = true;
               multipleFaceTimerRef.current = setTimeout(() => {
                 if (submittedRef.current) return;
                 setMultipleFaceEvents(prev => prev + 1);
-                recordProctorEvent('multiple_faces', 'high', 'Multiple faces detected for 15+ continuous seconds');
+                recordProctorEvent('multiple_faces', 'high', 'Multiple faces detected for 5+ continuous seconds');
                 addToast('🚫 Multiple faces detected.', 'danger');
                 showViolationPopupFn(
                   'Multiple Faces Detected',
                   'Only the candidate should remain visible during the assessment.',
                   'danger'
                 );
-              }, 15000);
+              }, 5000);
             }
           } else {
             // Back to single face — reset multiple-face timer
@@ -1369,14 +1381,24 @@ export default function TestPage() {
 
   // ── Timer Countdown ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    const t = setInterval(() => setTimeLeft(p => p - 1), 1000);
+    if (!test || timeLeft <= 0) return;
+    const t = setInterval(() => {
+      setTimeLeft(p => {
+        if (p <= 1) {
+          clearInterval(t);
+          return 0;
+        }
+        return p - 1;
+      });
+    }, 1000);
     return () => clearInterval(t);
-  }, [timeLeft]);
+  // Start the interval once when test (and thus timeLeft) is first set
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [test]);
 
   // ── Auto submit on time end ───────────────────────────────────────────────
   useEffect(() => {
-    if (timeLeft === 0 && test && !submittedRef.current) {
+    if (timeLeft === 0 && test && !submittedRef.current && (test.duration ?? 0) > 0) {
       submitTest(true);
     }
   }, [timeLeft, test, submitTest]);
@@ -1385,8 +1407,9 @@ export default function TestPage() {
   useEffect(() => {
     if (criticalViolationCount >= MAX_VIOLATIONS && !submittedRef.current) {
       setForceTerminated(true);
+      submitTest(true);
     }
-  }, [criticalViolationCount]);
+  }, [criticalViolationCount, submitTest]);
 
   // ── Enter fullscreen when test loads AND permissions are granted ──────────
   useEffect(() => {
@@ -1401,12 +1424,17 @@ export default function TestPage() {
     const handler = () => {
       const inFs = !!document.fullscreenElement;
       setIsFullscreen(inFs);
+      if (inFs) {
+        // Successfully re-entered fullscreen — dismiss the prompt
+        setShowFullscreenPrompt(false);
+        return;
+      }
       if (
-  !inFs &&
-  !submittedRef.current &&
-  !isSubmittingRef.current &&
-  examStarted
-) {
+        !inFs &&
+        !submittedRef.current &&
+        !isSubmittingRef.current &&
+        examStarted
+      ) {
         setFullscreenViolations(p => {
           const next = p + 1;
           logViolation('fullscreen_exit', next);
@@ -1566,47 +1594,162 @@ export default function TestPage() {
   // ── Pre-Exam Permission Gate ───────────────────────────────────────────────
   if (!examStarted) {
     if (initialCameraChecked && initialMicChecked) {
+      // Both checks done but one or more permissions denied
+      if (!cameraEnabled || !microphoneEnabled) {
+        return (
+          <div className="center-screen">
+            <div className="empty-card" style={{ borderColor: 'rgba(220,38,38,0.3)' }}>
+              <div className="big-icon">🔒</div>
+              <h2 style={{ color: 'var(--danger)' }}>Permissions Required</h2>
+              <p>
+                {!cameraEnabled && <span>📷 Camera Access Required<br/></span>}
+                {!microphoneEnabled && <span>🎤 Microphone Access Required<br/></span>}
+                <br/>
+                Please grant the required permissions in your browser and then retry.
+              </p>
+              <button
+                className="btn btn-primary"
+                style={{ marginTop: 24, width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  setInitialCameraChecked(false);
+                  setInitialMicChecked(false);
+                  setRetryPerms(p => p + 1);
+                }}
+              >
+                Retry Permissions
+              </button>
+            </div>
+
+            {showViolationPopup && (
+              <div className="overlay">
+                <div className="overlay-backdrop" />
+                <div className={`overlay-card ${violationSeverity === 'danger' ? 'overlay-danger' : 'overlay-warning'}`}>
+                  <div className={`overlay-icon ${violationSeverity === 'danger' ? 'danger' : 'warning'}`}>
+                    {violationSeverity === 'danger' ? '🚫' : '⚠️'}
+                  </div>
+                  <h2 className="overlay-title">{violationTitle}</h2>
+                  <p className="overlay-body">{violationMessage}</p>
+                  <div className="overlay-countdown">This warning will close automatically.</div>
+                  <button className="btn btn-primary" onClick={() => setShowViolationPopup(false)}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // Both permissions granted — show confirmation screen before starting
       return (
         <div className="center-screen">
-          <div className="empty-card" style={{ borderColor: 'rgba(220,38,38,0.3)' }}>
-            <div className="big-icon">🔒</div>
-            <h2 style={{ color: 'var(--danger)' }}>Permissions Required</h2>
-            <p>
-              {!cameraEnabled && <span>📷 Camera Access Required<br/></span>}
-              {!microphoneEnabled && <span>🎤 Microphone Access Required<br/></span>}
-              <br/>
-              Please grant required permissions to continue.
+          <div className="empty-card" style={{ maxWidth: 520, borderColor: 'rgba(37,99,235,0.3)' }}>
+            <div className="big-icon">✅</div>
+            <h2 style={{ color: 'var(--text-primary)', marginBottom: 6 }}>Ready to Start</h2>
+            <p style={{ marginBottom: 24, color: 'var(--text-secondary)' }}>
+              Your camera and microphone are active. Please confirm the information below before beginning.
             </p>
-            <button
-              className="btn btn-primary"
-              style={{ marginTop: 24, width: '100%', justifyContent: 'center' }}
-              onClick={() => {
-                setInitialCameraChecked(false);
-                setInitialMicChecked(false);
-                setRetryPerms(p => p + 1);
-              }}
-            >
-              Retry Permissions
-            </button>
-          </div>
 
-          {/* Render to allow the popups to show during the gate stage */}
-          {showViolationPopup && (
-            <div className="overlay">
-              <div className="overlay-backdrop" />
-              <div className={`overlay-card ${violationSeverity === 'danger' ? 'overlay-danger' : 'overlay-warning'}`}>
-                <div className={`overlay-icon ${violationSeverity === 'danger' ? 'danger' : 'warning'}`}>
-                  {violationSeverity === 'danger' ? '🚫' : '⚠️'}
-                </div>
-                <h2 className="overlay-title">{violationTitle}</h2>
-                <p className="overlay-body">{violationMessage}</p>
-                <div className="overlay-countdown">This warning will close automatically.</div>
-                <button className="btn btn-primary" onClick={() => setShowViolationPopup(false)}>
-                  Continue
-                </button>
+            {/* Device status */}
+            <div style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 14,
+              padding: '16px 20px',
+              marginBottom: 20,
+              textAlign: 'left',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text-secondary)' }}>📷 Camera</span>
+                <span style={{ color: 'var(--success)', fontWeight: 700 }}>Active ✓</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text-secondary)' }}>🎤 Microphone</span>
+                <span style={{ color: 'var(--success)', fontWeight: 700 }}>Active ✓</span>
+              </div>
+              {test && (
+                <>
+                  <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>📝 Assessment</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{test.title}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>⏱ Duration</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{test.duration} min</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>❓ Questions</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{test.questions.length}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Warning notice */}
+            <div style={{
+              background: 'var(--warn-dim)',
+              border: '1px solid rgba(245,158,11,0.3)',
+              borderRadius: 10,
+              padding: '12px 16px',
+              fontSize: 12.5,
+              color: 'var(--warn)',
+              textAlign: 'left',
+              marginBottom: 24,
+              lineHeight: 1.6,
+            }}>
+              ⚠️ Once you start, <strong>do not exit fullscreen, switch tabs, or cover your camera</strong>.
+              All activity is monitored and violations are recorded.
+            </div>
+
+            {/* Live camera preview */}
+            <div style={{
+              width: '100%',
+              height: 160,
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: '#111',
+              border: '1px solid var(--border)',
+              marginBottom: 24,
+              position: 'relative',
+            }}>
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
+              />
+              <div style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                padding: '6px 10px',
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                fontSize: 11,
+                color: '#fff',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                Camera preview — make sure your face is visible
               </div>
             </div>
-          )}
+
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center', padding: '13px 20px', fontSize: 15, fontWeight: 700 }}
+              onClick={() => setExamStarted(true)}
+            >
+              🚀 Begin Assessment
+            </button>
+          </div>
         </div>
       );
     }

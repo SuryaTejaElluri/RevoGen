@@ -235,6 +235,8 @@ export class TestsService {
         faceMissingEvents: proctoringData.summary?.faceMissingEvents ?? 0,
         multipleFaceEvents: proctoringData.summary?.multipleFaceEvents ?? 0,
         noiseWarnings: proctoringData.summary?.noiseWarnings ?? 0,
+        cameraDisconnectEvents: proctoringData.summary?.cameraDisconnectEvents ?? 0,
+        microphoneDisconnectEvents: proctoringData.summary?.microphoneDisconnectEvents ?? 0,
         riskScore: proctoringData.riskScore ?? 0,
         securityScore: Math.max(0, 100 - (proctoringData.riskScore ?? 0)),
         suspicionLevel: proctoringData.summary?.riskLevel ?? 'LOW',

@@ -634,9 +634,9 @@ export default function TestPage() {
 
   // ── Toast ──────────────────────────────────────────────────────────────────
   const addToast = useCallback((message: string, type: Toast['type'] = 'warn') => {
-    const id = toastCounter++;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+    const tid = toastCounter++;
+    setToasts(prev => [...prev, { id: tid, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== tid)), 4000);
   }, []);
 
   // ── Violation Logger ───────────────────────────────────────────────────────
@@ -728,22 +728,38 @@ export default function TestPage() {
 
   // ── Timer ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (timeLeft <= 0) return;
-    const t = setInterval(() => setTimeLeft(p => p - 1), 1000);
+    if (!test || timeLeft <= 0) return;
+    const t = setInterval(() => {
+      setTimeLeft(p => {
+        if (p <= 1) {
+          clearInterval(t);
+          return 0;
+        }
+        return p - 1;
+      });
+    }, 1000);
     return () => clearInterval(t);
-  }, [timeLeft]);
+  // Only start the interval once when the test loads (timeLeft gets set from data.duration * 60)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [test]);
 
   // ── Auto submit on time ────────────────────────────────────────────────────
   useEffect(() => {
-    if (timeLeft === 0 && test && !submittedRef.current) submitTest(true);
-  }, [timeLeft, test, submitTest]);
+    if (timeLeft === 0 && test && !submittedRef.current && Object.keys(answers).length >= 0) {
+      // Extra guard: only auto-submit if timer actually ran (duration was set)
+      if ((test.duration ?? 0) > 0) {
+        submitTest(true);
+      }
+    }
+  }, [timeLeft, test, submitTest, answers]);
 
   // ── Force terminate on max violations ─────────────────────────────────────
   useEffect(() => {
     if (totalViolations >= MAX_VIOLATIONS && !submittedRef.current) {
       setForceTerminated(true);
+      submitTest(true);
     }
-  }, [totalViolations]);
+  }, [totalViolations, submitTest]);
 
   // ── Enter fullscreen on load ───────────────────────────────────────────────
   useEffect(() => {
@@ -758,7 +774,12 @@ export default function TestPage() {
     const handler = () => {
       const inFs = !!document.fullscreenElement;
       setIsFullscreen(inFs);
-      if (!inFs && !submittedRef.current) {
+      if (inFs) {
+        // Re-entered fullscreen — dismiss the prompt
+        setShowFullscreenPrompt(false);
+        return;
+      }
+      if (!inFs && !submittedRef.current && test) {
         setFullscreenViolations(p => {
           const next = p + 1;
           logViolation('fullscreen_exit', next);
@@ -771,12 +792,12 @@ export default function TestPage() {
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, [addToast, logViolation]);
+  }, [addToast, logViolation, test]);
 
   // ── Tab visibility ─────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = () => {
-      if (document.hidden && !submittedRef.current) {
+      if (document.hidden && !submittedRef.current && test) {
         setTabSwitches(p => {
           const next = p + 1;
           logViolation('tab_switch', next);
@@ -788,11 +809,12 @@ export default function TestPage() {
     };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
-  }, [addToast, logViolation]);
+  }, [addToast, logViolation, test]);
 
   // ── Copy / paste prevention ────────────────────────────────────────────────
   useEffect(() => {
     const prevent = (e: Event) => {
+      if (!test || submittedRef.current) return;
       e.preventDefault();
       setCopyAttempts(p => {
         const next = p + 1;
@@ -809,11 +831,12 @@ export default function TestPage() {
       document.removeEventListener('paste', prevent);
       document.removeEventListener('cut', prevent);
     };
-  }, [addToast, logViolation]);
+  }, [addToast, logViolation, test]);
 
   // ── Right click prevention ─────────────────────────────────────────────────
   useEffect(() => {
     const prevent = (e: MouseEvent) => {
+      if (!test || submittedRef.current) return;
       e.preventDefault();
       setRightClickAttempts(p => {
         const next = p + 1;
@@ -824,7 +847,7 @@ export default function TestPage() {
     };
     document.addEventListener('contextmenu', prevent);
     return () => document.removeEventListener('contextmenu', prevent);
-  }, [addToast, logViolation]);
+  }, [addToast, logViolation, test]);
 
   // ── Dev tools key combos ───────────────────────────────────────────────────
   useEffect(() => {

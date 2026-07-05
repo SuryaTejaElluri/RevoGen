@@ -148,26 +148,28 @@ model TestModule {
 }
 
 model ProctoringReport {
-  id                   String   @id @default(uuid())
-  attemptId            String   @unique
-  cameraEnabled        Boolean  @default(false)
-  microphoneEnabled    Boolean  @default(false)
-  tabSwitches          Int      @default(0)
-  fullscreenViolations Int      @default(0)
-  idleEvents           Int      @default(0)
-  resizeEvents         Int      @default(0)
-  riskScore            Int      @default(0)
-  securityScore        Int      @default(100)
-  createdAt            DateTime @default(now())
-  faceMissingEvents    Int      @default(0)
-  focusLossEvents      Int      @default(0)
-  multipleFaceEvents   Int      @default(0)
-  noiseWarnings        Int      @default(0)
-  possibleMultiMonitor Boolean  @default(false)
-  suspicionLevel       String   @default("LOW")
-  copyAttempts         Int      @default(0)
-  rightClickAttempts   Int      @default(0)
-  attempt              Attempt  @relation(fields: [attemptId], references: [id])
+  id                        String   @id @default(uuid())
+  attemptId                 String   @unique
+  cameraEnabled             Boolean  @default(false)
+  microphoneEnabled         Boolean  @default(false)
+  tabSwitches               Int      @default(0)
+  fullscreenViolations      Int      @default(0)
+  idleEvents                Int      @default(0)
+  resizeEvents              Int      @default(0)
+  riskScore                 Int      @default(0)
+  securityScore             Int      @default(100)
+  createdAt                 DateTime @default(now())
+  faceMissingEvents         Int      @default(0)
+  focusLossEvents           Int      @default(0)
+  multipleFaceEvents        Int      @default(0)
+  noiseWarnings             Int      @default(0)
+  possibleMultiMonitor      Boolean  @default(false)
+  suspicionLevel            String   @default("LOW")
+  copyAttempts              Int      @default(0)
+  rightClickAttempts        Int      @default(0)
+  cameraDisconnectEvents    Int      @default(0)
+  microphoneDisconnectEvents Int     @default(0)
+  attempt                   Attempt  @relation(fields: [attemptId], references: [id])
 }
 
 model CodingTest {
