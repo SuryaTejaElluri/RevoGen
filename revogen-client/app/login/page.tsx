@@ -263,6 +263,37 @@ function LoginContent() {
         .rg-form-sub a { color: #1a6cf6; font-weight: 600; text-decoration: none; }
         .rg-form-sub a:hover { text-decoration: underline; }
 
+        /* Create account highlight strip */
+        .rg-create-strip {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 12px; padding: 14px 16px; border-radius: 13px; margin-bottom: 24px;
+          border: 1.5px solid rgba(26,108,246,0.28);
+          background: rgba(26,108,246,0.07);
+        }
+        .rg-root.dark .rg-create-strip { border-color: rgba(26,108,246,0.35); background: rgba(26,108,246,0.12); }
+        .rg-create-strip-text { font-size: 0.82rem; font-weight: 600; }
+        .rg-root.light .rg-create-strip-text { color: #2a2826; }
+        .rg-root.dark  .rg-create-strip-text { color: #d4d0cb; }
+        .rg-create-strip-sub { font-size: 0.74rem; font-weight: 400; margin-top: 2px; }
+        .rg-root.light .rg-create-strip-sub { color: #6a6663; }
+        .rg-root.dark  .rg-create-strip-sub { color: #5a5753; }
+        .rg-create-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .rg-create-btn {
+          padding: 8px 14px; border-radius: 9px; font-family: 'Sora', sans-serif;
+          font-size: 0.78rem; font-weight: 700; cursor: pointer; text-decoration: none;
+          transition: all 0.2s; white-space: nowrap; border: none; display: inline-block;
+        }
+        .rg-create-btn.cand {
+          background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff;
+          box-shadow: 0 4px 14px rgba(79,70,229,0.35);
+        }
+        .rg-create-btn.cand:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,0.5); }
+        .rg-create-btn.rec {
+          background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;
+          box-shadow: 0 4px 14px rgba(139,92,246,0.35);
+        }
+        .rg-create-btn.rec:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(139,92,246,0.5); }
+
         .rg-field { margin-bottom: 18px; }
         .rg-label {
           display: block;
@@ -503,10 +534,21 @@ function LoginContent() {
             <div className="rg-form-head">
               <div className="rg-form-tag">Welcome back</div>
               <h1 className="rg-form-title">Log in to<br />RevoGen</h1>
-              <p className="rg-form-sub">
-                Don't have an account?{' '}
-                <Link href="/register">Create one free →</Link>
+              <p className="rg-form-sub" style={{ marginBottom: 20 }}>
+                Enter your credentials below to access your dashboard.
               </p>
+            </div>
+
+            {/* ── Highlighted create account strip ── */}
+            <div className="rg-create-strip">
+              <div>
+                <div className="rg-create-strip-text">✨ New to Revogen?</div>
+                <div className="rg-create-strip-sub">Create a free account — it only takes 60 seconds</div>
+              </div>
+              <div className="rg-create-btns">
+                <Link href="/register/candidate" className="rg-create-btn cand">🎓 Candidate</Link>
+                <Link href="/register/recruiter" className="rg-create-btn rec">💼 Recruiter</Link>
+              </div>
             </div>
 
             {error && (
