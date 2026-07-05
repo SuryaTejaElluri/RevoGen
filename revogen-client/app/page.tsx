@@ -7,26 +7,32 @@ import {
   useScroll,
   useTransform,
   useInView,
-  useMotionValue,
-  useSpring,
   AnimatePresence,
+  type Variants,
 } from "framer-motion";
 
 // ─── Fade / Slide helpers ────────────────────────────────────────────────────
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 32 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.65, delay: i * 0.08, ease: [0.16, 0.84, 0.44, 1] } }),
+  show:   { opacity: 1, y: 0 },
 };
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0 },
-  show: (i = 0) => ({ opacity: 1, transition: { duration: 0.6, delay: i * 0.07 } }),
+  show:   { opacity: 1 },
 };
 
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
-    <motion.div ref={ref} variants={fadeUp} initial="hidden" animate={inView ? "show" : "hidden"} custom={delay} className={className}>
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={inView ? "show" : "hidden"}
+      variants={fadeUp}
+      transition={{ delay: delay * 0.08, duration: 0.65, ease: [0.16, 0.84, 0.44, 1] }}
+      className={className}
+    >
       {children}
     </motion.div>
   );
@@ -36,7 +42,14 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
-    <motion.div ref={ref} variants={fadeIn} initial="hidden" animate={inView ? "show" : "hidden"} custom={delay} className={className}>
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={inView ? "show" : "hidden"}
+      variants={fadeIn}
+      transition={{ delay: delay * 0.07, duration: 0.6 }}
+      className={className}
+    >
       {children}
     </motion.div>
   );
