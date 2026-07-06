@@ -17,6 +17,12 @@ export class Judge0Service {
     languageId: number,
     stdin?: string,
   ) {
+
+    if (languageId === 62) {
+    sourceCode = sourceCode
+      .replace(/public\s+class\s+Solution/g, 'public class Main')
+      .replace(/class\s+Solution/g, 'class Main');
+  }
     const response = await axios.post(
       `${this.baseUrl}/submissions?base64_encoded=false&wait=false`,
       {
