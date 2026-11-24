@@ -3,374 +3,149 @@
 import { clearSession, getToken } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { API_BASE_URL } from '@/lib/api';
+import { useEffect, useRef, useState } from 'react';
+import './candidate/bento.css';
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+// Candidate area navigation (Bento theme). Render inside a `.bx` root.
 
-  .rg-nav-outer {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 14px 24px;
-    pointer-events: none;
-  }
-
-  .rg-nav-pill {
-    pointer-events: all;
-    width: 100%;
-    max-width: 1400px;
-    height: 58px;
-    background: #111113;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    padding: 0 8px 0 8px;
-    gap: 0;
-    box-shadow:
-      0 2px 8px rgba(0,0,0,0.35),
-      0 8px 32px rgba(0,0,0,0.28),
-      0 0 0 1px rgba(255,255,255,0.07) inset;
-    font-family: 'DM Sans', system-ui, sans-serif;
-  }
-
-  /* ── Logo icon ── */
-  .rg-pill-logo {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #000;
-    border: 1.5px solid rgba(255,255,255,0.10);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    text-decoration: none;
-    transition: border-color 0.15s;
-    margin-right: 6px;
-  }
-  .rg-pill-logo:hover { border-color: rgba(255,255,255,0.25); }
-
-  /* ── Nav links ── */
-  .rg-pill-links {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex: 1;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .rg-pill-link {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 7px 16px;
-    border-radius: 999px;
-    font-size: 15px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.55);
-    text-decoration: none;
-    letter-spacing: -0.01em;
-    transition: color 0.15s, background 0.15s;
-    white-space: nowrap;
-    line-height: 1;
-  }
-
-  .rg-pill-link:hover {
-    color: rgba(255,255,255,0.90);
-    background: rgba(255,255,255,0.07);
-  }
-
-  .rg-pill-link.active {
-    color: #fff;
-    background: rgba(255,255,255,0.10);
-  }
-
-  /* ── Right: email pill ── */
-  .rg-pill-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-    flex-shrink: 0;
-    padding-right: 2px;
-  }
-
-  .rg-email-pill {
-    display: flex;
-    align-items: center;
-    height: 38px;
-    padding: 0 18px;
-    border-radius: 999px;
-    background: #fff;
-    color: #111;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    letter-spacing: -0.01em;
-    white-space: nowrap;
-    cursor: pointer;
-    border: none;
-    transition: background 0.15s, color 0.15s;
-    text-decoration: none;
-    gap: 7px;
-    max-width: 220px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .rg-email-pill:hover {
-    background: #f0f0f0;
-  }
-
-  .rg-signout-pill {
-    display: flex;
-    align-items: center;
-    height: 38px;
-    padding: 0 17px;
-    border-radius: 999px;
-    background: transparent;
-    color: rgba(255,255,255,0.45);
-    font-size: 14px;
-    font-weight: 500;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    border: 1.5px solid rgba(255,255,255,0.10);
-    cursor: pointer;
-    letter-spacing: -0.01em;
-    transition: color 0.15s, border-color 0.15s, background 0.15s;
-    gap: 6px;
-  }
-
-  .rg-signout-pill:hover {
-    color: rgba(239,68,68,0.9);
-    border-color: rgba(239,68,68,0.3);
-    background: rgba(239,68,68,0.07);
-  }
-
-  /* ── Hamburger ── */
-  .rg-burger {
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 4.5px;
-    width: 38px;
-    height: 38px;
-    cursor: pointer;
-    border-radius: 999px;
-    border: 1.5px solid rgba(255,255,255,0.10);
-    background: transparent;
-    padding: 0;
-    transition: border-color 0.15s;
-    flex-shrink: 0;
-  }
-  .rg-burger:hover { border-color: rgba(255,255,255,0.25); }
-
-  .rg-burger span {
-    display: block;
-    width: 15px;
-    height: 1.5px;
-    background: rgba(255,255,255,0.6);
-    border-radius: 2px;
-    transition: transform 0.22s cubic-bezier(.4,0,.2,1), opacity 0.16s;
-    transform-origin: center;
-  }
-  .rg-burger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
-  .rg-burger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-  .rg-burger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
-
-  /* ── Mobile drawer ── */
-  .rg-drawer {
-    display: none;
-    position: fixed;
-    top: 86px;
-    left: 24px;
-    right: 24px;
-    z-index: 999;
-    background: #111113;
-    border-radius: 20px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.07) inset;
-    padding: 10px;
-    flex-direction: column;
-    gap: 2px;
-    font-family: 'DM Sans', system-ui, sans-serif;
-  }
-
-  .rg-drawer.open {
-    display: flex;
-    animation: drawerIn 0.18s cubic-bezier(.4,0,.2,1);
-  }
-
-  @keyframes drawerIn {
-    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .rg-drawer .rg-pill-link {
-    font-size: 15px;
-    padding: 11px 18px;
-    border-radius: 12px;
-    width: 100%;
-  }
-
-  .rg-drawer-sep {
-    height: 1px;
-    background: rgba(255,255,255,0.06);
-    margin: 6px 4px;
-  }
-
-  .rg-drawer .rg-signout-pill {
-    border-radius: 12px;
-    width: 100%;
-    justify-content: center;
-    padding: 11px;
-    height: auto;
-    font-size: 14.5px;
-  }
-
-  @media (max-width: 900px) {
-    .rg-pill-links        { display: none; }
-    .rg-email-pill        { display: none; }
-    .rg-signout-pill-desk { display: none; }
-    .rg-burger            { display: flex; }
-  }
-
-  @media (max-width: 480px) {
-    .rg-nav-outer { padding: 12px 14px; }
-    .rg-drawer    { left: 14px; right: 14px; top: 82px; }
-  }
-`;
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
-const LogoIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="white" opacity="0.9"/>
-  </svg>
-);
-
-const LogoutIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-    <polyline points="16 17 21 12 16 7"/>
-    <line x1="21" y1="12" x2="9" y2="12"/>
-  </svg>
-);
-
-interface NavItem { href: string; label: string; }
-
-const NAV_ITEMS: NavItem[] = [
-  { href: '/',               label: 'Home'          },
-  { href: '/dashboard',      label: 'Dashboard'     },
-  { href: '/assigned-tests', label: 'Assigned Test' },
-  { href: '/practice',       label: 'Practice'      },
-  { href: '/my-results',     label: 'Results'       },
-  { href: '/resumes',        label: 'Resumes'       },
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'home' },
+  { href: '/assigned-tests', label: 'Assigned tests', icon: 'clip' },
+  { href: '/practice', label: 'Practice', icon: 'bolt' },
+  { href: '/my-results', label: 'Results', icon: 'chart' },
+  { href: '/resumes', label: 'Resumes', icon: 'file' },
 ];
 
+export const BX_ICONS: Record<string, React.ReactNode> = {
+  home: <><path d="M3 9.5L10 4l7 5.5V16a1 1 0 01-1 1h-4v-4.5H8V17H4a1 1 0 01-1-1V9.5z" /></>,
+  clip: <><rect x="4.5" y="3.5" width="11" height="14" rx="2" /><path d="M7.5 3.5V2.5h5v1M7.5 9h5M7.5 12.5h3" /></>,
+  bolt: <><path d="M11 2.5L4.5 11H10l-1 6.5L15.5 9H10l1-6.5z" /></>,
+  chart: <><path d="M3.5 16.5h13M6 13.5V9M10 13.5V5.5M14 13.5v-3" /></>,
+  file: <><path d="M11 2.5H5.5A1.5 1.5 0 004 4v12a1.5 1.5 0 001.5 1.5h9A1.5 1.5 0 0016 16V7.5l-5-5z" /><path d="M11 2.5v5h5" /></>,
+  out: <><path d="M8 17H4.5A1.5 1.5 0 013 15.5v-11A1.5 1.5 0 014.5 3H8M13 14l4-4-4-4M17 10H8" /></>,
+  arrow: <><path d="M4 10h11M11 5.5l4.5 4.5-4.5 4.5" /></>,
+  code: <><path d="M7 5.5L2.5 10 7 14.5M13 5.5l4.5 4.5-4.5 4.5" /></>,
+  list: <><path d="M7 5.5h9M7 10h9M7 14.5h9" /><circle cx="3.75" cy="5.5" r=".75" /><circle cx="3.75" cy="10" r=".75" /><circle cx="3.75" cy="14.5" r=".75" /></>,
+  clock: <><circle cx="10" cy="10" r="7" /><path d="M10 6.5V10l2.5 1.5" /></>,
+  shield: <><path d="M10 2.5l6 2.5v4.5c0 4-2.6 6.9-6 8-3.4-1.1-6-4-6-8V5l6-2.5z" /></>,
+  check: <><path d="M4 10.5l3.5 3.5L16 5.5" /></>,
+  x: <><path d="M5 5l10 10M15 5L5 15" /></>,
+  upload: <><path d="M10 13V3.5M6 7.5l4-4 4 4M3.5 13.5v2A1.5 1.5 0 005 17h10a1.5 1.5 0 001.5-1.5v-2" /></>,
+  target: <><circle cx="10" cy="10" r="7" /><circle cx="10" cy="10" r="3.5" /><circle cx="10" cy="10" r=".6" /></>,
+  spark: <><path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6L10 2.5z" /></>,
+  trophy: <><path d="M6.5 3.5h7v4a3.5 3.5 0 01-7 0v-4zM6.5 5H3.5v1a3 3 0 003 3M13.5 5h3v1a3 3 0 01-3 3M10 11v3M7 17h6M8 14h4v3H8z" /></>,
+  menu: <><path d="M3 5.5h14M3 10h14M3 14.5h14" /></>,
+  play: <><path d="M6.5 4.5v11l9-5.5-9-5.5z" /></>,
+  alert: <><circle cx="10" cy="10" r="7.5" /><path d="M10 6.5v4M10 13.5h.01" /></>,
+  eye: <><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z" /><circle cx="10" cy="10" r="2.5" /></>,
+  trash: <><path d="M4 6h12M8 6V4.5h4V6M5.5 6l.8 10.5h7.4L14.5 6" /></>,
+  calendar: <><rect x="3" y="4.5" width="14" height="12.5" rx="2" /><path d="M3 8.5h14M7 2.5v4M13 2.5v4" /></>,
+};
+
+export function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {BX_ICONS[name]}
+    </svg>
+  );
+}
+
+function emailFromToken(): string {
+  try {
+    const token = getToken();
+    if (!token) return '';
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload?.email === 'string' ? payload.email : '';
+  } catch {
+    return '';
+  }
+}
+
 export default function Navbar() {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState('Account');
+  const [scrolled, setScrolled] = useState(false);
+  // Menus remember the page they were opened on, so they close after navigating.
+  const [menuPath, setMenuPath] = useState<string | null>(null);
+  const [drawerPath, setDrawerPath] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const whoRef = useRef<HTMLDivElement>(null);
+
+  const menuOpen = menuPath === pathname;
+  const drawerOpen = drawerPath === pathname;
 
   useEffect(() => {
-    const id = 'rg-pill-styles';
-    if (document.getElementById(id)) return;
-    const tag = document.createElement('style');
-    tag.id = id;
-    tag.innerHTML = styles;
-    document.head.appendChild(tag);
+    // Read the signed-in email after mount (the token lives in a browser cookie).
+    const t = setTimeout(() => setEmail(emailFromToken()), 0);
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { clearTimeout(t); window.removeEventListener('scroll', onScroll); };
   }, []);
 
-  useEffect(() => { setMenuOpen(false); }, [pathname]);
-
+  // Close the account menu on outside click.
   useEffect(() => {
-    try {
-      const token = getToken();
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload?.email) setUserEmail(payload.email);
-      }
-    } catch {}
-  }, []);
+    if (!menuOpen) return;
+    const onDown = (e: MouseEvent) => { if (!whoRef.current?.contains(e.target as Node)) setMenuPath(null); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [menuOpen]);
 
   const logout = () => {
     clearSession();
     router.push('/login');
   };
 
+  const initial = (email || '?').charAt(0).toUpperCase();
+  const isOn = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
   return (
-    <>
-      <div className="rg-nav-outer">
-        <div className="rg-nav-pill">
+    <header className={`nav${scrolled ? ' sc' : ''}`}>
+      <div className="nav-in">
+        <Link href="/dashboard" className="brand">
+          <img src="/revogen-icon.svg" alt="" width={26} height={26} />
+          Revogen
+        </Link>
 
-          {/* Logo */}
-          <Link href="/" className="rg-pill-logo" aria-label="Home">
-            <LogoIcon />
-          </Link>
+        <ul className="links">
+          {NAV_ITEMS.map(item => (
+            <li key={item.href}>
+              <Link href={item.href} className={isOn(item.href) ? 'on' : undefined} aria-current={isOn(item.href) ? 'page' : undefined}>
+                <Icon name={item.icon} size={15} />
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
 
-          {/* Desktop links */}
-          <ul className="rg-pill-links">
-            {NAV_ITEMS.map(({ href, label }) => (
-              <li key={href}>
-                <Link
-                  href={href}
-                  className={`rg-pill-link${pathname === href ? ' active' : ''}`}
-                >
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          {/* Right side */}
-          <div className="rg-pill-right">
-            <span className="rg-email-pill" onClick={logout} style={{ cursor: 'pointer' }}>
-              {userEmail}
-            </span>
-
-            <button className="rg-signout-pill rg-signout-pill-desk" onClick={logout}>
-              <LogoutIcon />
-              Sign out
-            </button>
-
-            {/* Mobile hamburger */}
-            <button
-              className={`rg-burger${menuOpen ? ' open' : ''}`}
-              onClick={() => setMenuOpen(p => !p)}
-              aria-label="Toggle menu"
-            >
-              <span /><span /><span />
-            </button>
-          </div>
-
+        <div className="who" ref={whoRef}>
+          <button className="who-btn" onClick={() => setMenuPath(menuOpen ? null : pathname)} aria-haspopup="menu" aria-expanded={menuOpen}>
+            <span className="avatar">{initial}</span>
+            <span className="em">{email || 'Account'}</span>
+          </button>
+          {menuOpen && (
+            <div className="menu" role="menu">
+              {email && <div className="hd">Signed in as<br /><b style={{ color: 'var(--ink)' }}>{email}</b></div>}
+              <div className="sep" />
+              <button className="mi danger" role="menuitem" onClick={logout}><Icon name="out" size={16} />Sign out</button>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Mobile drawer */}
-      <div className={`rg-drawer${menuOpen ? ' open' : ''}`}>
-        {NAV_ITEMS.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className={`rg-pill-link${pathname === href ? ' active' : ''}`}
-          >
-            {label}
-          </Link>
-        ))}
-        <div className="rg-drawer-sep" />
-        <button className="rg-signout-pill" onClick={logout}>
-          <LogoutIcon />
-          Sign out
+        <button className="burger" onClick={() => setDrawerPath(drawerOpen ? null : pathname)} aria-label={drawerOpen ? 'Close menu' : 'Open menu'} aria-expanded={drawerOpen}>
+          <Icon name={drawerOpen ? 'x' : 'menu'} />
         </button>
       </div>
-    </>
+
+      <nav className={`drawer${drawerOpen ? ' open' : ''}`}>
+        {NAV_ITEMS.map(item => (
+          <Link key={item.href} href={item.href} className={isOn(item.href) ? 'on' : undefined}>
+            <Icon name={item.icon} size={16} />
+            {item.label}
+          </Link>
+        ))}
+        <button onClick={logout}><Icon name="out" size={16} />Sign out{email ? ` (${email})` : ''}</button>
+      </nav>
+    </header>
   );
 }
