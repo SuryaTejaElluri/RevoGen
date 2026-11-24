@@ -1,5 +1,6 @@
 'use client';
 import { getToken } from '@/lib/auth';
+import CandidateFooter from '@/components/candidate/Footer';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -214,6 +215,7 @@ export default function AssignedTestsPage() {
           )}
         </div>
       </main>
+      <CandidateFooter />
 
       <style>{`
         .bx .at-top{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.6fr)}

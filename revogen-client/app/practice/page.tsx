@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import CandidateFooter from '@/components/candidate/Footer';
 import Link from 'next/link';
 import Navbar, { Icon } from '@/components/Navbar';
 import { API_BASE_URL } from '@/lib/api';
@@ -146,6 +147,7 @@ export default function PracticePage() {
           )}
         </div>
       </main>
+      <CandidateFooter />
 
       <style>{`
         .bx .pr-top{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr))}

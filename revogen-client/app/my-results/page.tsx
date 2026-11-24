@@ -1,6 +1,7 @@
 'use client';
 
 import { getToken } from '@/lib/auth';
+import CandidateFooter from '@/components/candidate/Footer';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Navbar, { Icon } from '@/components/Navbar';
@@ -192,6 +193,7 @@ export default function MyResultsPage() {
           )}
         </div>
       </main>
+      <CandidateFooter />
 
       <style>{`
         .bx .rs-top{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.5fr)}

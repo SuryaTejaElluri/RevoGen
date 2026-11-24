@@ -1,5 +1,6 @@
 'use client';
 import { clearSession, getToken } from '@/lib/auth';
+import CandidateFooter from '@/components/candidate/Footer';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -237,6 +238,7 @@ export default function DashboardPage() {
           ))}
         </div>
       </main>
+      <CandidateFooter />
 
       {/* New tests pop-up (once per session) */}
       {showTestsPopup && pendingTests.length > 0 && (

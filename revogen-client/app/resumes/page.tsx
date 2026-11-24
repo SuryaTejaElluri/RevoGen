@@ -1,6 +1,7 @@
 'use client';
 
 import { getToken } from '@/lib/auth';
+import CandidateFooter from '@/components/candidate/Footer';
 import { useEffect, useRef, useState } from 'react';
 import Navbar, { Icon } from '../../components/Navbar';
 import { API_BASE_URL } from '@/lib/api';
@@ -398,6 +399,7 @@ export default function ResumePage() {
           )}
         </section>
       </main>
+      <CandidateFooter />
 
       <style>{`
         .bx .rz-steps{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}

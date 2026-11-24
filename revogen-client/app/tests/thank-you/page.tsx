@@ -2,6 +2,7 @@
 
 // Shown after any test (MCQ or coding) is submitted.
 import { Suspense, useEffect, useState } from 'react';
+import CandidateFooter from '@/components/candidate/Footer';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Icon } from '@/components/Navbar';
@@ -81,6 +82,7 @@ function ThankYou() {
           </span>
         </div>
       </main>
+      <CandidateFooter />
     </div>
   );
 }
