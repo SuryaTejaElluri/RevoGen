@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -74,7 +75,7 @@ export default function AssessmentViewPage() {
       setLoading(true);
       setError(null);
 
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const token = typeof window !== 'undefined' ? getToken() : null;
 
       const res = await fetch(`${API_BASE_URL}/coding-tests/${assessmentId}`, {
         headers: {

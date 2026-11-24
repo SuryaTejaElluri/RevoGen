@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -13,7 +14,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     // Only SUPER_ADMIN may access this page
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       router.replace('/login');
       return;
@@ -32,7 +33,7 @@ export default function UsersPage() {
   }, []);
 
   const loadUsers = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
 
     const response = await fetch(`${API_BASE_URL}/users`, {
       headers: {

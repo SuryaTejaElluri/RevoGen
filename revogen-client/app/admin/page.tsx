@@ -1,4 +1,5 @@
 ﻿'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useMemo, useState, ReactNode, CSSProperties } from 'react';
@@ -191,7 +192,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     const h = { Authorization: `Bearer ${token}` };
 
     Promise.all([

@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProAdminNavbar from '@/components/ProAdminNavbar';
@@ -19,9 +20,7 @@ export default function ProAdminQuestionsPage() {
     async () => {
       try {
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         const response =
           await fetch(
@@ -58,9 +57,7 @@ export default function ProAdminQuestionsPage() {
 
       try {
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         await fetch(
           `${API_BASE_URL}/question-bank/${id}`,

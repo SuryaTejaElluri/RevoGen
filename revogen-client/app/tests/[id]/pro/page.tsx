@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision';
@@ -984,7 +985,7 @@ export default function TestPage() {
       audioContextRef.current.close().catch(() => {});
     }
 
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
 
     // Capture current state snapshot for submission
     // These are read via closure at call time
@@ -1053,7 +1054,7 @@ export default function TestPage() {
         setTimeLeft(data.duration * 60);
 
         if (!data.isPractice) {
-          const token = localStorage.getItem('access_token');
+          const token = getToken();
           const ar    = await fetch(`${API_BASE_URL}/tests/${id}/attempt-status`, {
             headers: { Authorization: `Bearer ${token}` },
           });

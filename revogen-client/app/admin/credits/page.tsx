@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState, CSSProperties } from 'react';
@@ -6,7 +7,7 @@ import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
 
-const token = () => (typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '');
+const token = () => (typeof window !== 'undefined' ? getToken() ?? '' : '');
 const h = () => ({ Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
 // ─── Types ────────────────────────────────────────────────────────────────────

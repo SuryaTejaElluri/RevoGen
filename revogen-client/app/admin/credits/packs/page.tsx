@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -6,7 +7,7 @@ import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 
 
-const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` });
+const h = () => ({ Authorization: `Bearer ${getToken() ?? ''}` });
 
 interface Pack {
   id: string;

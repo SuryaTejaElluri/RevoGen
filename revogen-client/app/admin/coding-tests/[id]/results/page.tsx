@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -543,7 +544,7 @@ export default function CodingTestResultsPage() {
 
   const loadResults = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const res = await fetch(`${API_BASE_URL}/coding-tests/${testId}/results`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -556,7 +557,7 @@ export default function CodingTestResultsPage() {
   const openReport = useCallback(async (result: Result) => {
     setReportLoading(result.id);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       // Try PRO report first if applicable, fall back to basic report
       const isPro = !!(result.proSummary && (
         result.proSummary.faceMissingCount > 0 || result.proSummary.multipleFacesCount > 0 ||

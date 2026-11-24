@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -691,7 +692,7 @@ export default function AssignedTestsPage() {
 
   // Auth guard — redirect unauthenticated visitors to login, preserving the destination
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       router.replace('/login?redirect=/assigned-tests');
     }
@@ -699,7 +700,7 @@ export default function AssignedTestsPage() {
 
   const startCodingTest = async (codingTestId: string, securityLevel?: string) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const res = await fetch(
         `${API_BASE_URL}/coding-attempts/start/${codingTestId}`,
         {
@@ -737,7 +738,7 @@ export default function AssignedTestsPage() {
   const loadTests = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       const [mcqRes, codingRes] = await Promise.all([

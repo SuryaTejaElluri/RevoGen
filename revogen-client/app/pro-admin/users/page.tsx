@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import ProAdminNavbar from '@/components/ProAdminNavbar';
 import { API_BASE_URL } from '@/lib/api';
@@ -18,9 +19,7 @@ export default function ProAdminUsersPage() {
   const loadUsers = async () => {
     try {
       const token =
-        localStorage.getItem(
-          'access_token',
-        );
+        getToken();
 
       const response =
         await fetch(
@@ -54,9 +53,7 @@ export default function ProAdminUsersPage() {
 ) => {
   try {
     const token =
-      localStorage.getItem(
-        'access_token',
-      );
+      getToken();
 
     await fetch(
       `${API_BASE_URL}/users/${userId}/role`,
@@ -97,9 +94,7 @@ export default function ProAdminUsersPage() {
 
   try {
     const token =
-      localStorage.getItem(
-        'access_token',
-      );
+      getToken();
 
     await fetch(
       `${API_BASE_URL}/users/${userId}`,

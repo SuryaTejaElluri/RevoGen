@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -46,9 +47,7 @@ export default function EditQuestionPage() {
   const loadQuestion =
     async () => {
       const token =
-        localStorage.getItem(
-          'access_token',
-        );
+        getToken();
 
       const response =
         await fetch(
@@ -99,9 +98,7 @@ export default function EditQuestionPage() {
         setLoading(true);
 
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         const response =
           await fetch(

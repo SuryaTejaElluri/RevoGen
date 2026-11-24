@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -15,7 +16,7 @@ export default function CandidateProfilePage() {
 
   useEffect(() => {
     // Only SUPER_ADMIN may access this page
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) {
       router.replace('/login');
       return;
@@ -35,7 +36,7 @@ export default function CandidateProfilePage() {
 
   const loadCandidate = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
 
       const response = await fetch(`${API_BASE_URL}/users/${id}/profile`, {
         headers: {

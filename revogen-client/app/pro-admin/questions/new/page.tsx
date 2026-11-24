@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -56,9 +57,7 @@ export default function NewQuestionPage() {
         setLoading(true);
 
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         const response =
           await fetch(

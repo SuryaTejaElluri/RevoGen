@@ -1,5 +1,6 @@
 'use client';
 
+import { clearSession, getToken } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -292,7 +293,7 @@ export default function Navbar() {
 
   useEffect(() => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload?.email) setUserEmail(payload.email);
@@ -301,7 +302,7 @@ export default function Navbar() {
   }, []);
 
   const logout = () => {
-    localStorage.removeItem('access_token');
+    clearSession();
     router.push('/login');
   };
 

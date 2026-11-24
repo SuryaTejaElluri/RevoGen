@@ -1,4 +1,5 @@
 ﻿'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect } from 'react';
@@ -15,9 +16,7 @@ export default function ResultsRouter() {
   const loadTest = async () => {
     try {
       const token =
-        localStorage.getItem(
-          'access_token',
-        );
+        getToken();
 
       const response =
         await fetch(

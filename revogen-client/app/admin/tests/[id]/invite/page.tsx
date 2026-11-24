@@ -1,4 +1,5 @@
 ﻿'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
@@ -20,7 +21,7 @@ export default function InvitePage() {
   const loadInvitations = async () => {
     try {
       setFetchingInvites(true);
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/tests/${testId}/invitations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -36,7 +37,7 @@ export default function InvitePage() {
   const assignTest = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const emailList = emails.split('\n').map((e) => e.trim()).filter(Boolean);
       const response = await fetch(`${API_BASE_URL}/tests/${testId}/invite`, {
         method: 'POST',

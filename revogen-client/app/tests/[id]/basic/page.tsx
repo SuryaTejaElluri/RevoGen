@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -650,7 +651,7 @@ export default function TestPage() {
     submittedRef.current = true;
     setSubmitted(true);
 
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     try {
       await fetch(`${API_BASE_URL}/tests/${id}/submit`, {
         method: 'POST',
@@ -694,9 +695,7 @@ export default function TestPage() {
       // Only assigned tests are restricted
       if (!data.isPractice) {
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         const attemptResponse =
           await fetch(

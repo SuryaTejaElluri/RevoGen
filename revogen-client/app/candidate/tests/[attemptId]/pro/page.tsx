@@ -1,5 +1,6 @@
 "use client";
 
+import { getToken as readSessionToken } from '@/lib/auth';
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -191,7 +192,7 @@ export default function ProAssessmentPage() {
   const screenshotCountRef    = useRef(0);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
-  const getToken = () => (typeof window !== "undefined" && localStorage.getItem("access_token")) || "";
+  const getToken = () => (typeof window !== "undefined" && readSessionToken()) || "";
 
   const addToast = useCallback((msg: string, type: ToastType = "success") => {
     const id = Date.now() + Math.random();
