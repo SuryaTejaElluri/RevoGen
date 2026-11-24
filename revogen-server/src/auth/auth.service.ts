@@ -13,6 +13,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 import { UnauthorizedException } from '@nestjs/common';
 import { MailService } from '../mail/mail.service';
+import {
+  linkPendingCodingInvitations,
+  normalizeEmail,
+} from '../common/invitations';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -25,6 +29,8 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    // Store emails normalised so invitations and logins match regardless of case.
+    dto.email = normalizeEmail(dto.email);
     const existingUser =
       await this.usersService.findByEmail(
         dto.email,
@@ -106,6 +112,14 @@ this.mailService
   );
 }
 
+
+    // Attach coding-test invitations sent before this account existed.
+    try {
+      const linked = await linkPendingCodingInvitations(this.prisma, user.id, user.email);
+      if (linked) this.logger.log(`Linked ${linked} pending coding invitation(s) to ${user.email}`);
+    } catch (err) {
+      this.logger.error(`Failed to link pending invitations for ${user.email}: ${(err as Error).message}`);
+    }
 
     // ── Wallet auto-creation for ADMIN accounts ──────────────────────────────
     if (user.role === 'ADMIN') {

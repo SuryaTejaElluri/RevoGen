@@ -15,7 +15,7 @@ const SECURITY: { label: string; basic: boolean; pro: boolean }[] = [
   { label: "Auto-submit when time runs out", basic: true, pro: true },
   { label: "Camera and microphone required", basic: false, pro: true },
   { label: "Face checks (no face, more than one face)", basic: false, pro: true },
-  { label: "Copy and paste blocked", basic: false, pro: true },
+  { label: "Copy and paste blocked", basic: true, pro: true },
   { label: "Screenshot captured on flagged events", basic: false, pro: true },
 ];
 

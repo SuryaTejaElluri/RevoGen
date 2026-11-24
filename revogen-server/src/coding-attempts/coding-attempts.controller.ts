@@ -48,17 +48,11 @@ async getAttempt(
   @Request() req,
   
 ) {
-    console.log("REQ USER:", req.user);
   const result =
     await this.codingAttemptsService.getAttempt(
       attemptId,
       req.user.userId,
     );
-
-  console.log(
-    'GET ATTEMPT RESULT:',
-    JSON.stringify(result, null, 2),
-  );
   
 
   return result;

@@ -5,10 +5,16 @@ import { PrismaService } from '../prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  /** Exact match first; then case-insensitive, for accounts created before emails were normalised. */
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
-      where: { email },
-    });
+    const address = (email ?? '').trim();
+    if (!address) return null;
+    return (
+      (await this.prisma.user.findUnique({ where: { email: address } })) ??
+      (await this.prisma.user.findFirst({
+        where: { email: { equals: address, mode: 'insensitive' } },
+      }))
+    );
   }
 
  async create(data: {

@@ -41,7 +41,7 @@ export class CodingTestsController {
   @UseGuards(AuthGuard('jwt'))
   @Get('assigned')
   getAssignedTests(@Request() req) {
-    return this.codingTestsService.getAssignedTests(req.user.userId);
+    return this.codingTestsService.getAssignedTests(req.user.userId, req.user.email);
   }
 
   @UseGuards(AuthGuard('jwt'))

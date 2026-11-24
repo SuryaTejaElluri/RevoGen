@@ -1,7 +1,10 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { loadActiveAttempt } from '../common/coding-attempt';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -76,20 +79,44 @@ export class CodingSubmissionsService {
     }
   }
 
-  async runCode(
-    dto: CreateRunCodeDto,
-  ) {
-    const question =
-      await this.prisma.codingQuestionBank.findUnique({
-        where: { id: dto.questionId },
-        include: {
-          testCases: { where: { isHidden: false } },
-        },
-      });
+  // ─── Execution helpers ───────────────────────────────────────────────────────
 
+  /** Judge0 status ids: 1 = in queue, 2 = processing, 3 = accepted. */
+  private static readonly MAX_POLLS = 30; // ~30 s per test case
+
+  private async executeCase(sourceCode: string, languageId: number, stdin: string): Promise<any> {
+    const submission = await this.judge0Service.createSubmission(sourceCode, languageId, stdin);
+    for (let i = 0; i < CodingSubmissionsService.MAX_POLLS; i++) {
+      const result = await this.judge0Service.getSubmissionResult(submission.token);
+      if (result.status?.id !== 1 && result.status?.id !== 2) return result;
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    return { status: { id: -1, description: 'Time Limit Exceeded' }, message: 'Your code took too long to run.' };
+  }
+
+  private languageIdOrThrow(language: string): number {
+    const id = this.getLanguageId(language);
+    if (!id) throw new BadRequestException(`Unsupported language: ${language}`);
+    return id;
+  }
+
+  private errorText(result: any): string {
+    return result.compile_output || result.stderr || result.message || result.status?.description || 'Execution error';
+  }
+
+  // ─── Run: visible test cases only, nothing is saved ─────────────────────────
+
+  async runCode(dto: CreateRunCodeDto, userId: string) {
+    await loadActiveAttempt(this.prisma, dto.attemptId, userId, dto.questionId);
+    if (!dto.sourceCode?.trim()) throw new BadRequestException('Write some code before running.');
+
+    const question = await this.prisma.codingQuestionBank.findUnique({
+      where: { id: dto.questionId },
+      include: { testCases: { where: { isHidden: false } } },
+    });
     if (!question) throw new NotFoundException('Question not found');
 
-    const languageId = this.getLanguageId(dto.language);
+    const languageId = this.languageIdOrThrow(dto.language);
     const validator = (question as any).outputValidator ?? 'EXACT';
     const floatPrecision = (question as any).floatPrecision ?? 6;
 
@@ -98,43 +125,25 @@ export class CodingSubmissionsService {
 
     for (let i = 0; i < question.testCases.length; i++) {
       const testCase = question.testCases[i];
-
-      const submission = await this.judge0Service.createSubmission(
-        dto.sourceCode, languageId, testCase.input,
-      );
-
-      let executionResult;
-      while (true) {
-        executionResult = await this.judge0Service.getSubmissionResult(submission.token);
-        if (executionResult.status?.id !== 1 && executionResult.status?.id !== 2) break;
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      const executionResult = await this.executeCase(dto.sourceCode, languageId, testCase.input);
 
       if (executionResult.status?.id !== 3) {
         return {
           success: false,
-          status: executionResult.status?.description,
-          error: executionResult.compile_output || executionResult.stderr || executionResult.message,
-          passedCases: 0,
+          status: executionResult.status?.description ?? 'Execution Error',
+          error: this.errorText(executionResult),
+          passedCases,
           totalCases: question.testCases.length,
+          results,
         };
       }
 
       const actualOutput = (executionResult.stdout || '').trim();
       const expectedOutput = testCase.expectedOutput.trim();
       const passed = this.compareOutputs(actualOutput, expectedOutput, validator, floatPrecision);
-
       if (passed) passedCases++;
 
-      results.push({
-        testCaseNo: i + 1,
-        passed,
-        ...(passed ? {} : {
-          input: testCase.input,
-          expected: expectedOutput,
-          received: actualOutput,
-        }),
-      });
+      results.push({ testCaseNo: i + 1, passed, input: testCase.input, expected: expectedOutput, received: actualOutput });
     }
 
     return {
@@ -147,60 +156,53 @@ export class CodingSubmissionsService {
     };
   }
 
-  async submitCode(dto: CreateSubmitCodeDto) {
+  // ─── Submit: all test cases, saved and scored ───────────────────────────────
+
+  async submitCode(dto: CreateSubmitCodeDto, userId: string) {
+    await loadActiveAttempt(this.prisma, dto.attemptId, userId, dto.questionId);
+    if (!dto.sourceCode?.trim()) throw new BadRequestException('Write some code before submitting.');
+
     const question = await this.prisma.codingQuestionBank.findUnique({
       where: { id: dto.questionId },
       include: { testCases: true },
     });
-
     if (!question) throw new NotFoundException('Question not found');
 
-    const languageId = this.getLanguageId(dto.language);
+    const languageId = this.languageIdOrThrow(dto.language);
     const validator = (question as any).outputValidator ?? 'EXACT';
     const floatPrecision = (question as any).floatPrecision ?? 6;
+    const totalCases = question.testCases.length;
 
     let passedCases = 0;
+    let error: string | null = null;
+    let errorStatus: string | null = null;
     const results: any[] = [];
 
     for (let i = 0; i < question.testCases.length; i++) {
       const testCase = question.testCases[i];
-
-      const submission = await this.judge0Service.createSubmission(
-        dto.sourceCode, languageId, testCase.input,
-      );
-
-      let executionResult;
-      while (true) {
-        executionResult = await this.judge0Service.getSubmissionResult(submission.token);
-        if (executionResult.status?.id !== 1 && executionResult.status?.id !== 2) break;
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+      const executionResult = await this.executeCase(dto.sourceCode, languageId, testCase.input);
 
       if (executionResult.status?.id !== 3) {
-        return {
-          success: false,
-          status: executionResult.status?.description || 'Execution Error',
-          error: executionResult.compile_output || executionResult.stderr || executionResult.message,
-        };
+        // Compile error / runtime error / time limit: stop, but still save the
+        // submission (remaining cases score 0) so the recruiter can see it.
+        error = this.errorText(executionResult);
+        errorStatus = executionResult.status?.description ?? 'Execution Error';
+        break;
       }
 
       const actualOutput = (executionResult.stdout || '').trim();
       const expectedOutput = testCase.expectedOutput.trim();
       const passed = this.compareOutputs(actualOutput, expectedOutput, validator, floatPrecision);
-
       if (passed) passedCases++;
 
-      results.push({
-        testCaseNo: i + 1,
-        passed,
-        input: testCase.input,
-        expected: expectedOutput,
-        received: actualOutput,
-        isHidden: testCase.isHidden,
-      });
+      // Hidden test cases only report pass/fail — never their input or expected output.
+      results.push(
+        testCase.isHidden
+          ? { testCaseNo: i + 1, passed, isHidden: true }
+          : { testCaseNo: i + 1, passed, isHidden: false, input: testCase.input, expected: expectedOutput, received: actualOutput },
+      );
     }
 
-    const totalCases = question.testCases.length;
     const score = totalCases === 0 ? 0 : Math.round((passedCases / totalCases) * 100);
     const status = score === 100 ? 'PASSED' : score > 0 ? 'PARTIAL' : 'FAILED';
 
@@ -218,16 +220,30 @@ export class CodingSubmissionsService {
     });
 
     return {
-      success: true,
+      success: !error,
       submissionId: savedSubmission.id,
-      status,
+      status: error ? (errorStatus as string) : status,
+      scoreStatus: status,
+      error,
       passedCases,
       totalCases,
       score,
-      sourceCode: dto.sourceCode,
       results,
       validator,
     };
+  }
+
+  /** Submissions for an attempt: the candidate who owns it, or the recruiter who owns the test. */
+  async getSubmissionsFor(attemptId: string, userId: string) {
+    const attempt = await this.prisma.codingAttempt.findFirst({
+      where: { id: attemptId },
+      select: { userId: true, codingTest: { select: { createdById: true } } },
+    });
+    if (!attempt) throw new NotFoundException('Test attempt not found.');
+    if (attempt.userId !== userId && attempt.codingTest.createdById !== userId) {
+      throw new ForbiddenException('You do not have access to these submissions.');
+    }
+    return this.getSubmissions(attemptId);
   }
 
   async getSubmissions(

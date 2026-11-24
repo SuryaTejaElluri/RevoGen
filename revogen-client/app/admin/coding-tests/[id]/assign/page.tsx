@@ -187,9 +187,16 @@ export default function AssignPage() {
   }, [assessmentId, loadData, fetchBalance]);
 
   // Re-run estimate when assessment loads or email count changes
-  const emailCount = useMemo(() =>
-    emails.split(/[\s,]+/).filter(e => e.trim() !== '').length,
+  // Unique, normalised emails typed in the box, and which of them are new.
+  // Re-inviting an existing candidate is free (it only re-sends the email),
+  // so the cost estimate counts new emails only.
+  const typedEmails = useMemo(() =>
+    Array.from(new Set(emails.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean))),
     [emails]);
+  const emailCount = useMemo(() => {
+    const existing = new Set(invitations.map(i => (i.candidateEmail || '').trim().toLowerCase()));
+    return typedEmails.filter(e => !existing.has(e)).length;
+  }, [typedEmails, invitations]);
 
   useEffect(() => {
     if (assessment && emailCount > 0) {
@@ -204,7 +211,8 @@ export default function AssignPage() {
   const handleBulkInvite = async (e: FormEvent) => {
     e.preventDefault();
 
-    const emailList = emails.split(/[\s,]+/).filter((email) => email.trim() !== '');
+    // De-duplicated case-insensitively so the same person is never invited (or charged) twice.
+    const emailList = typedEmails;
 
     if (emailList.length === 0) {
       setError('Please enter at least one valid email address.');
@@ -219,7 +227,9 @@ export default function AssignPage() {
     try {
       const token = getToken();
 
-      const invitePromises = emailList.map(async (candidateEmail) => {
+      // One at a time: keeps the credit balance and invite-limit checks accurate.
+      const failures: string[] = [];
+      for (const candidateEmail of emailList) {
         const res = await fetch(`${API_BASE_URL}/coding-tests/${assessmentId}/invite`, {
           method: 'POST',
           headers: {
@@ -231,17 +241,20 @@ export default function AssignPage() {
 
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to invite ${candidateEmail}`);
+          failures.push(`${candidateEmail}: ${errorData.message || 'failed'}`);
+          // Out of credits or at the invite limit: the rest would fail too.
+          if (res.status === 400 && /credit|limit/i.test(String(errorData.message))) break;
         }
-        return res.json();
-      });
-
-      await Promise.all(invitePromises);
+      }
 
       await fetchInvitations();
       await fetchBalance(); // refresh wallet after deduction
       setEmails('');
-      setShowInviteSuccess({ count: emailList.length, emails: emailList });
+      if (failures.length) {
+        setError(`Some invitations were not sent: ${failures.join('; ')}`);
+      } else {
+        setShowInviteSuccess({ count: emailList.length, emails: emailList });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to send one or more invitations.');
     } finally {

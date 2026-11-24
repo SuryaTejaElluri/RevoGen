@@ -30,7 +30,7 @@ const MODULES = [
   {
     icon: "eye", title: "Proctoring",
     body: "Each attempt carries a timestamped log of what happened, and a risk score you can sort by.",
-    points: ["Tab switches and fullscreen exits", "Camera face checks on Pro tests", "Copy and paste blocked on Pro tests"],
+    points: ["Tab switches and fullscreen exits", "Camera face checks on Pro tests", "Copy and paste blocked"],
     href: "/assessments#security",
   },
   {

@@ -2,8 +2,10 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { isValidEmail, normalizeEmail } from '../common/invitations';
 
 @Injectable()
 export class TestsService {
@@ -274,12 +276,19 @@ export class TestsService {
   ) {
     await this.validateTestOwnership(testId, adminId);
 
+    const clean = Array.from(
+      new Set((emails ?? []).map((e) => normalizeEmail(e)).filter((e) => isValidEmail(e))),
+    );
+    if (!clean.length) {
+      throw new BadRequestException('Enter at least one valid email address.');
+    }
+
     await this.prisma.testInvitation.createMany({
-      data: emails.map((email) => ({ email, testId })),
+      data: clean.map((email) => ({ email, testId })),
       skipDuplicates: true,
     });
 
-    return { message: 'Invitations created successfully', count: emails.length };
+    return { message: 'Invitations created successfully', count: clean.length };
   }
 
   // ─── Get Invitations (admin-scoped) ───────────────────────────────────────────
@@ -296,15 +305,17 @@ export class TestsService {
 
   async getAssignedTests(email: string) {
     const invitations = await this.prisma.testInvitation.findMany({
-      where: { email },
+      where: { email: { equals: normalizeEmail(email), mode: 'insensitive' } },
       include: { test: true },
+    });
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: normalizeEmail(email), mode: 'insensitive' } },
+      select: { id: true },
     });
 
     // Filter out tests where the candidate has already submitted (COMPLETED)
     const filtered = await Promise.all(
       invitations.map(async (inv) => {
-        // Find the user by email to check attempts
-        const user = await this.prisma.user.findUnique({ where: { email } });
         if (!user) return inv;
         const attempt = await this.prisma.attempt.findFirst({
           where: { testId: inv.testId, userId: user.id },

@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 
@@ -26,8 +27,9 @@ export class CodingSubmissionsController {
   runCode(
     @Body()
     dto: CreateRunCodeDto,
+    @Request() req,
   ) {
-    return this.codingSubmissionsService.runCode(dto);
+    return this.codingSubmissionsService.runCode(dto, req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -35,8 +37,9 @@ export class CodingSubmissionsController {
   submitCode(
     @Body()
     dto: CreateSubmitCodeDto,
+    @Request() req,
   ) {
-    return this.codingSubmissionsService.submitCode(dto);
+    return this.codingSubmissionsService.submitCode(dto, req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -44,9 +47,11 @@ export class CodingSubmissionsController {
   getSubmissions(
     @Param('attemptId')
     attemptId: string,
+    @Request() req,
   ) {
-    return this.codingSubmissionsService.getSubmissions(
+    return this.codingSubmissionsService.getSubmissionsFor(
       attemptId,
+      req.user.userId,
     );
   }
 
