@@ -275,7 +275,7 @@ export default function ResumePage() {
             <UploadZone file={file} onFile={setFile} />
             <button className="btn dark block" style={{ marginTop: 12 }} onClick={uploadResume} disabled={uploadDisabled}>
               {uploading
-                ? <><span className="spin" style={{ width: 14, height: 14, borderTopColor: '#fff' }} />Uploading and scoring…</>
+                ? <><span className="spin" style={{ width: 14, height: 14, borderTopColor: 'currentColor' }} />Uploading and scoring…</>
                 : canScore ? <>Upload and score<Icon name="arrow" size={16} /></> : 'Choose a role first'}
             </button>
           </section>
@@ -304,7 +304,7 @@ export default function ResumePage() {
               <section className="tile indigo">
                 <div className="lbl"><Icon name="check" size={15} />Must-have skills</div>
                 <div className="num">{analysis.coreMatchPercent ?? 0}<small>%</small></div>
-                <div className="bar" style={{ margin: '10px 0 6px', background: 'rgba(255,255,255,.6)' }}><i style={{ width: `${analysis.coreMatchPercent ?? 0}%` }} /></div>
+                <div className="bar" style={{ margin: '10px 0 6px', background: 'var(--track)' }}><i style={{ width: `${analysis.coreMatchPercent ?? 0}%` }} /></div>
                 <div className="sub">{analysis.coreMatched?.length ?? 0} of {analysis.coreSkills?.length ?? 0} found</div>
               </section>
 
@@ -312,7 +312,7 @@ export default function ResumePage() {
                 <section className="tile lime">
                   <div className="lbl"><Icon name="spark" size={15} />Nice-to-have skills</div>
                   <div className="num">{analysis.bonusMatchPercent ?? 0}<small>%</small></div>
-                  <div className="bar" style={{ margin: '10px 0 6px', background: 'rgba(255,255,255,.6)' }}><i style={{ width: `${analysis.bonusMatchPercent ?? 0}%`, background: 'var(--green)' }} /></div>
+                  <div className="bar" style={{ margin: '10px 0 6px', background: 'var(--track)' }}><i style={{ width: `${analysis.bonusMatchPercent ?? 0}%`, background: 'var(--green)' }} /></div>
                   <div className="sub">{analysis.bonusMatched?.length ?? 0} found · {analysis.bonusTarget ?? 0} for full credit</div>
                 </section>
               )}
@@ -389,7 +389,7 @@ export default function ResumePage() {
                       </span>
                     )}
                     <button className="btn sm dark" disabled={busy || !canScore} onClick={() => analyzeResume(resume.id)} title={!canScore ? 'Choose a role first' : undefined}>
-                      {isAnalyzing ? <><span className="spin" style={{ width: 12, height: 12, borderTopColor: '#fff' }} />Scoring…</> : <>Score<span className="rz-hide"> for this role</span></>}
+                      {isAnalyzing ? <><span className="spin" style={{ width: 12, height: 12, borderTopColor: 'currentColor' }} />Scoring…</> : <>Score<span className="rz-hide"> for this role</span></>}
                     </button>
                   </div>
                 );
@@ -401,7 +401,7 @@ export default function ResumePage() {
 
       <style>{`
         .bx .rz-steps{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:start}
-        .bx .step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--dark);color:var(--lime);font-size:12.5px;font-weight:600;margin-right:10px;vertical-align:1px}
+        .bx .step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--hero);color:var(--lime);font-size:12.5px;font-weight:600;margin-right:10px;vertical-align:1px}
         .bx .role-prev{margin-top:14px;background:var(--bg);border-radius:14px;padding:14px}
         .bx .drop{display:flex;align-items:center;gap:14px;border:1.5px dashed var(--line2);border-radius:14px;padding:18px;background:var(--bg);cursor:pointer;transition:border-color .15s,background .15s}
         .bx .drop:hover,.bx .drop.drag{border-color:var(--indigo);background:var(--indigo-bg)}

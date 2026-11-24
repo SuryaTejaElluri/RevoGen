@@ -205,7 +205,7 @@ export default function AssignedTestsPage() {
                     {test.attempted
                       ? 'Already submitted'
                       : startingId === test.id
-                        ? <><span className="spin" style={{ width: 14, height: 14, borderTopColor: '#fff' }} />Starting…</>
+                        ? <><span className="spin" style={{ width: 14, height: 14, borderTopColor: 'currentColor' }} />Starting…</>
                         : <>Start test<Icon name="arrow" size={16} /></>}
                   </button>
                 </article>
@@ -220,7 +220,7 @@ export default function AssignedTestsPage() {
         .bx .tips ul{margin:10px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2);display:flex;flex-direction:column;gap:5px}
         .bx .at-cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
         .bx .at-card{background:var(--bg);display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
-        .bx .at-card:not(.done):hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(17,24,39,.4)}
+        .bx .at-card:not(.done):hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px var(--shadow)}
         .bx .at-card .btn{margin-top:auto}
         .bx .at-card.done{opacity:.75}
         .bx .at-title{font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:14px 0 2px}

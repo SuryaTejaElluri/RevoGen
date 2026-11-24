@@ -140,12 +140,12 @@ export default function DashboardPage() {
                 <div>
                   <h2 className="un-title">{next.title}</h2>
                   <div className="chips" style={{ marginTop: 10 }}>
-                    <span className="chip dark" style={{ background: 'rgba(255,255,255,.1)' }}>
+                    <span className="chip on-hero">
                       <Icon name={next.type === 'CODING' ? 'code' : 'list'} size={13} />{next.type === 'CODING' ? 'Coding' : 'MCQ'}
                     </span>
-                    <span className="chip dark" style={{ background: 'rgba(255,255,255,.1)' }}><Icon name="clock" size={13} />{next.duration} min</span>
+                    <span className="chip on-hero"><Icon name="clock" size={13} />{next.duration} min</span>
                     {next.securityLevel && (
-                      <span className="chip dark" style={{ background: 'rgba(255,255,255,.1)' }}><Icon name="shield" size={13} />{next.securityLevel === 'PRO' ? 'Pro proctoring' : 'Basic proctoring'}</span>
+                      <span className="chip on-hero"><Icon name="shield" size={13} />{next.securityLevel === 'PRO' ? 'Pro proctoring' : 'Basic proctoring'}</span>
                     )}
                   </div>
                 </div>

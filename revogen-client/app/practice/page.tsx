@@ -153,7 +153,7 @@ export default function PracticePage() {
         .bx .pr-hero-title{font-size:22px;font-weight:600;letter-spacing:-.02em;margin:8px 0 4px}
         .bx .pr-cards{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
         .bx .pr-card{background:var(--bg);display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
-        .bx .pr-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(17,24,39,.4)}
+        .bx .pr-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px var(--shadow)}
         .bx .pr-card .btn{margin-top:auto}
         .bx .pr-title{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:14px 0 0}
         @media (max-width:1000px){.bx .pr-top{grid-template-columns:repeat(3,minmax(0,1fr))}.bx .pr-hero{grid-column:1/-1}}

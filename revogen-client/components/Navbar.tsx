@@ -35,6 +35,8 @@ export const BX_ICONS: Record<string, React.ReactNode> = {
   spark: <><path d="M10 2.5l1.6 4.4 4.4 1.6-4.4 1.6L10 14.5l-1.6-4.4L4 8.5l4.4-1.6L10 2.5z" /></>,
   trophy: <><path d="M6.5 3.5h7v4a3.5 3.5 0 01-7 0v-4zM6.5 5H3.5v1a3 3 0 003 3M13.5 5h3v1a3 3 0 01-3 3M10 11v3M7 17h6M8 14h4v3H8z" /></>,
   menu: <><path d="M3 5.5h14M3 10h14M3 14.5h14" /></>,
+  sun: <><circle cx="10" cy="10" r="3.5" /><path d="M10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.3 4.3l1.1 1.1M14.6 14.6l1.1 1.1M4.3 15.7l1.1-1.1M14.6 5.4l1.1-1.1" /></>,
+  moon: <><path d="M16.5 12.5A7 7 0 017.5 3.5a7 7 0 109 9z" /></>,
   play: <><path d="M6.5 4.5v11l9-5.5-9-5.5z" /></>,
   alert: <><circle cx="10" cy="10" r="7.5" /><path d="M10 6.5v4M10 13.5h.01" /></>,
   eye: <><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6z" /><circle cx="10" cy="10" r="2.5" /></>,
@@ -48,6 +50,21 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
       {BX_ICONS[name]}
     </svg>
   );
+}
+
+// ── Light / dark theme ──
+// Stored in localStorage and applied as <html data-bx-theme="…">. The root layout
+// applies the saved value before first paint so dark mode doesn't flash white.
+export const BX_THEME_KEY = 'bx_theme';
+type BxTheme = 'light' | 'dark';
+
+function readTheme(): BxTheme {
+  return document.documentElement.getAttribute('data-bx-theme') === 'dark' ? 'dark' : 'light';
+}
+
+function applyTheme(theme: BxTheme) {
+  document.documentElement.setAttribute('data-bx-theme', theme);
+  try { localStorage.setItem(BX_THEME_KEY, theme); } catch { /* private mode */ }
 }
 
 function emailFromToken(): string {
@@ -69,6 +86,7 @@ export default function Navbar() {
   const [menuPath, setMenuPath] = useState<string | null>(null);
   const [drawerPath, setDrawerPath] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const [theme, setTheme] = useState<BxTheme | null>(null);
   const whoRef = useRef<HTMLDivElement>(null);
 
   const menuOpen = menuPath === pathname;
@@ -76,7 +94,8 @@ export default function Navbar() {
 
   useEffect(() => {
     // Read the signed-in email after mount (the token lives in a browser cookie).
-    const t = setTimeout(() => setEmail(emailFromToken()), 0);
+    // Read the signed-in email and current theme after mount (both live in the browser).
+    const t = setTimeout(() => { setEmail(emailFromToken()); setTheme(readTheme()); }, 0);
     const onScroll = () => setScrolled(window.scrollY > 4);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -90,6 +109,13 @@ export default function Navbar() {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [menuOpen]);
+
+  const toggleTheme = () => {
+    const next: BxTheme = (theme ?? readTheme()) === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    setTheme(next);
+  };
+  const themeLabel = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
 
   const logout = () => {
     clearSession();
@@ -118,6 +144,10 @@ export default function Navbar() {
           ))}
         </ul>
 
+        <div className="nav-right">
+        <button className="theme-btn" onClick={toggleTheme} aria-label={themeLabel} title={themeLabel}>
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={17} />
+        </button>
         <div className="who" ref={whoRef}>
           <button className="who-btn" onClick={() => setMenuPath(menuOpen ? null : pathname)} aria-haspopup="menu" aria-expanded={menuOpen}>
             <span className="avatar">{initial}</span>
@@ -135,6 +165,7 @@ export default function Navbar() {
         <button className="burger" onClick={() => setDrawerPath(drawerOpen ? null : pathname)} aria-label={drawerOpen ? 'Close menu' : 'Open menu'} aria-expanded={drawerOpen}>
           <Icon name={drawerOpen ? 'x' : 'menu'} />
         </button>
+        </div>
       </div>
 
       <nav className={`drawer${drawerOpen ? ' open' : ''}`}>
