@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -17,9 +18,7 @@ export default function ResultsRouterPage() {
   const loadTest = async () => {
     try {
       const token =
-        localStorage.getItem(
-          'access_token',
-        );
+        getToken();
 
       const response =
         await fetch(

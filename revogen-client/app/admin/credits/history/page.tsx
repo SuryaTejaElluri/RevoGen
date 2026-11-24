@@ -1,12 +1,13 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import { API_BASE_URL } from '@/lib/api';
 
 
-const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}` });
+const h = () => ({ Authorization: `Bearer ${getToken() ?? ''}` });
 
 interface Transaction {
   id: string;

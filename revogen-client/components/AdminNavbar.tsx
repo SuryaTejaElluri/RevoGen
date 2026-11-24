@@ -1,5 +1,6 @@
 'use client';
 
+import { clearSession } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -255,7 +256,7 @@ export default function AdminNavbar() {
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
+    clearSession();
     window.location.href = '/login';
   };
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { API_BASE_URL } from '@/lib/api';
@@ -16,7 +17,7 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     fetch(`${API_BASE_URL}/tests/assigned`, {
       headers: { Authorization: `Bearer ${token}` },
     })

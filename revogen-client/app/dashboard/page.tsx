@@ -1,4 +1,5 @@
 'use client';
+import { clearSession, getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -228,7 +229,7 @@ export default function DashboardPage() {
   const theme = isDark ? themes.dark : themes.light;
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     if (!token) { router.push('/login'); return; }
 
     fetch(`${API_BASE_URL}/dashboard`, {
@@ -236,7 +237,7 @@ export default function DashboardPage() {
     })
       .then(async res => {
         const data = await res.json();
-        if (!res.ok) { localStorage.removeItem('access_token'); router.push('/login'); return; }
+        if (!res.ok) { clearSession(); router.push('/login'); return; }
         setDashboard(data);
       })
       .catch(console.error);

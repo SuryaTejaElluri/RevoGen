@@ -1,5 +1,6 @@
 "use client";
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -227,7 +228,7 @@ export default function BasicAssessmentPage() {
 
   const logSecurityEvent = useCallback(async (eventType: string, details?: Record<string, any>) => {
     try {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getToken() || "";
       await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}/security-event`, {
         method: "POST",
         headers: {
@@ -252,7 +253,7 @@ export default function BasicAssessmentPage() {
 
   const handleFinalSubmitDirect = useCallback(async () => {
     try {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getToken() || "";
       const res = await fetch(
         `${API_BASE_URL}/coding-attempts/${attemptId}/basic/final-submit`,
         {
@@ -332,7 +333,7 @@ export default function BasicAssessmentPage() {
   useEffect(() => {
     const fetchAttempt = async () => {
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("access_token") || "" : "";
+        const token = typeof window !== "undefined" ? getToken() || "" : "";
         const res = await fetch(`${API_BASE_URL}/coding-attempts/${attemptId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -559,7 +560,7 @@ export default function BasicAssessmentPage() {
     setRunResult(null);
     setActiveResultTab("result");
     try {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getToken() || "";
       const res = await fetch(`${API_BASE_URL}/coding-submissions/run`, {
         method: "POST",
         headers: {
@@ -592,7 +593,7 @@ export default function BasicAssessmentPage() {
     setSubmitResult(null);
     setActiveResultTab("result");
     try {
-      const token = localStorage.getItem("access_token") || "";
+      const token = getToken() || "";
       const res = await fetch(`${API_BASE_URL}/coding-submissions/submit`, {
         method: "POST",
         headers: {

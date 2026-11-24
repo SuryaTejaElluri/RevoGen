@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -76,7 +77,7 @@ export default function CreateCodingAssessmentPage() {
     if (selectedIds.length === 0) return setError('Please select at least one question.');
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const payload = { title, description, duration: Number(duration), securityLevel, questionIds: selectedIds };
       const response = await fetch(`${API_BASE_URL}/coding-tests`, {
         method: 'POST',

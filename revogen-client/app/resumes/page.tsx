@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useRef, useState } from 'react';
 import Navbar from '../../components/Navbar';
 import { API_BASE_URL } from '@/lib/api';
@@ -255,7 +256,7 @@ export default function ResumePage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'skills' | 'suggestions'>('overview');
 
   const loadResumes = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     const res = await fetch(`${API_BASE_URL}/resumes`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -268,7 +269,7 @@ export default function ResumePage() {
   const uploadResume = async () => {
     if (!file || !title) { alert('Title and file required'); return; }
     setUploading(true);
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     const formData = new FormData();
     formData.append('title', title);
     formData.append('resume', file);
@@ -285,7 +286,7 @@ export default function ResumePage() {
 
   const analyzeResume = async (id: string) => {
     setAnalyzingId(id);
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     const res = await fetch(`${API_BASE_URL}/resumes/${id}/analyze`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

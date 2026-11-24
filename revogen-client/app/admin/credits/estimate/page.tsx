@@ -1,11 +1,12 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import { API_BASE_URL } from '@/lib/api';
 
-const h = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token') ?? ''}`, 'Content-Type': 'application/json' });
+const h = () => ({ Authorization: `Bearer ${getToken() ?? ''}`, 'Content-Type': 'application/json' });
 
 interface EstimateResult {
   requiredCredits: number;

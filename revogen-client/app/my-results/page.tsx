@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import { API_BASE_URL } from '@/lib/api';
@@ -913,7 +914,7 @@ export default function MyResultsPage() {
 
   const loadResults = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/tests/my-attempts`, {
         headers: { Authorization: `Bearer ${token}` },
       });

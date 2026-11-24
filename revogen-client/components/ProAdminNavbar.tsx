@@ -1,5 +1,6 @@
 'use client';
 
+import { clearSession } from '@/lib/auth';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
@@ -9,9 +10,7 @@ export default function ProAdminNavbar() {
   const router = useRouter();
 
   const logout = () => {
-    localStorage.removeItem(
-      'access_token',
-    );
+    clearSession();
 
     router.push('/login');
   };

@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -178,7 +179,7 @@ export default function CodingQuestionBankPage() {
     setDetailLoading(true);
     setSelected(null);
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+      const token = typeof window !== 'undefined' ? getToken() : null;
       // Endpoint: GET /coding-question-bank/:id
       const res = await fetch(`${API_BASE_URL}/coding-question-bank/${id}`, {
         headers: { Authorization: `Bearer ${token ?? ''}` },
@@ -194,7 +195,7 @@ export default function CodingQuestionBankPage() {
   };
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = typeof window !== 'undefined' ? getToken() : null;
     if (!token) { router.push('/login'); return; }
     fetch(`${API_BASE_URL}/coding-question-bank`, {
       headers: { Authorization: `Bearer ${token}` },

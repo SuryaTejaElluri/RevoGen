@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -59,7 +60,7 @@ export default function TestsPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       const [mcqRes, codingRes] = await Promise.allSettled([
@@ -88,7 +89,7 @@ export default function TestsPage() {
   const handleDeleteCoding = async (id: string) => {
     if (!confirm('Delete this coding assessment? This cannot be undone.')) return;
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const res = await fetch(`${API_BASE_URL}/coding-tests/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -108,7 +109,7 @@ export default function TestsPage() {
   const handleDeleteMcq = async (id: string) => {
     if (!confirm('Delete this MCQ assessment? This cannot be undone.')) return;
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const res = await fetch(`${API_BASE_URL}/tests/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },

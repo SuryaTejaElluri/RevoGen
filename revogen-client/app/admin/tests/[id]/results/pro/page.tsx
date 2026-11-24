@@ -1,5 +1,6 @@
 ﻿'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -517,7 +518,7 @@ export default function TestResultsPage() {
   useEffect(() => { loadResults(); }, []);
 
   const loadResults = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     try {
       const res  = await fetch(`${API_BASE_URL}/tests/${id}/results`, {
         headers: { Authorization: `Bearer ${token}` },

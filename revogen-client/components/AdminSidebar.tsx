@@ -1,5 +1,6 @@
 'use client';
 
+import { clearSession } from '@/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -335,7 +336,7 @@ export default function AdminSidebar({
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
+    clearSession();
     window.location.href = '/login';
   };
 

@@ -1,4 +1,5 @@
 'use client';
+import { getToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 
 import { useEffect, useState } from 'react';
@@ -75,7 +76,7 @@ export default function CreateTestPage() {
 
   const loadAvailability = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/question-bank/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -116,7 +117,7 @@ console.log("IS ARRAY:", Array.isArray(data));
     }
     try {
       setLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/tests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },

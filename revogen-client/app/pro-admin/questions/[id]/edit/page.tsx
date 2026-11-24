@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -47,9 +48,7 @@ export default function EditQuestionPage() {
   const loadQuestion =
     async () => {
       const token =
-        localStorage.getItem(
-          'access_token',
-        );
+        getToken();
 
       const response =
         await fetch(
@@ -100,9 +99,7 @@ export default function EditQuestionPage() {
         setLoading(true);
 
         const token =
-          localStorage.getItem(
-            'access_token',
-          );
+          getToken();
 
         const response =
           await fetch(

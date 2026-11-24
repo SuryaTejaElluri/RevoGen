@@ -1,4 +1,5 @@
 ﻿'use client';
+import { getToken as readSessionToken } from '@/lib/auth';
 import { API_BASE_URL } from '@/lib/api';
 import React, { useState, useEffect, useCallback, FormEvent, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -103,7 +104,7 @@ export default function AssignPage() {
   // Helper to get token
   const getToken = () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('access_token');
+      return readSessionToken();
     }
     return null;
   };

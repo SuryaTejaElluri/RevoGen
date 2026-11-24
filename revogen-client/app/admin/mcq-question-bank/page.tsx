@@ -1,5 +1,6 @@
 'use client';
 
+import { getToken } from '@/lib/auth';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import AdminNavbar from '@/components/AdminNavbar';
@@ -82,7 +83,7 @@ export default function MCQQuestionBankPage() {
   const [filterCat, setFilterCat] = useState('');
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    const token = getToken();
     fetch(`${API_BASE_URL}/question-bank`, {
       headers: { Authorization: `Bearer ${token}` },
     })
