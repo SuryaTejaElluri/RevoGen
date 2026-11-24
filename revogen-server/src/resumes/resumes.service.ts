@@ -3,9 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ResumesService {
-  constructor(
-    private prisma: PrismaService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async create(data: {
     title: string;
@@ -24,6 +22,20 @@ export class ResumesService {
         userId,
         isActive: true,
       },
+      include: {
+        // Everything except rawText, which can be large and isn't shown in the list.
+        analysis: {
+          select: {
+            id: true,
+            atsScore: true,
+            skills: true,
+            missingSkills: true,
+            projects: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -36,31 +48,37 @@ export class ResumesService {
     });
   }
 
+  /** A resume only if it belongs to this user. */
+  async findOwnedById(id: string, userId: string) {
+    return this.prisma.resume.findFirst({
+      where: { id, userId, isActive: true },
+    });
+  }
+
   async createAnalysis(data: {
-  resumeId: string;
-  skills: any;
-  education: any;
-  projects: any;
-  rawText: string;
-  atsScore: number;
-  missingSkills: any;
-}) {
-  return this.prisma.resumeAnalysis.upsert({
-    where: {
-      resumeId: data.resumeId,
-    },
+    resumeId: string;
+    skills: any;
+    education: any;
+    projects: any;
+    rawText: string;
+    atsScore: number;
+    missingSkills: any;
+  }) {
+    return this.prisma.resumeAnalysis.upsert({
+      where: {
+        resumeId: data.resumeId,
+      },
 
-    update: {
-      skills: data.skills,
-      education: data.education,
-      projects: data.projects,
-      rawText: data.rawText,
-      atsScore: data.atsScore,
-      missingSkills: data.missingSkills,
-    },
+      update: {
+        skills: data.skills,
+        education: data.education,
+        projects: data.projects,
+        rawText: data.rawText,
+        atsScore: data.atsScore,
+        missingSkills: data.missingSkills,
+      },
 
-    create: data,
-  });
-
-}
+      create: data,
+    });
+  }
 }
