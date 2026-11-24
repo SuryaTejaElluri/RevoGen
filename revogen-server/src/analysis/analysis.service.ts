@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as mammoth from 'mammoth';
-const pdfParse = require('pdf-parse');
+import { PDFParse } from 'pdf-parse';
 import { Injectable } from '@nestjs/common';
 import { SKILLS } from './skills';
 import { ROLES_CATALOG, RoleDefinition } from './roles';
@@ -119,10 +119,8 @@ export class AnalysisService {
       // 1. Try PDF extraction if PDF
       if (isPdf) {
         try {
-          const pdfResult = await pdfParse(buffer);
-          if (pdfResult?.text && pdfResult.text.trim().length > 0) {
-            return pdfResult.text;
-          }
+          const text = await pdfToText(buffer);
+          if (text.trim().length > 0) return text;
         } catch (pdfErr) {
           console.warn(
             'pdf-parse primary attempt failed:',
@@ -147,22 +145,27 @@ export class AnalysisService {
       }
 
       // 3. Fallback attempts: try pdf-parse, then mammoth, then raw string
-      try {
-        const fallbackPdf = await pdfParse(buffer);
-        if (fallbackPdf?.text && fallbackPdf.text.trim().length > 10) {
-          return fallbackPdf.text;
-        }
-      } catch {}
+      if (!isPdf) {
+        try {
+          const text = await pdfToText(buffer);
+          if (text.trim().length > 10) return text;
+        } catch {}
+      }
 
-      try {
-        const fallbackDocx = await mammoth.extractRawText({ buffer });
-        if (fallbackDocx?.value && fallbackDocx.value.trim().length > 10) {
-          return fallbackDocx.value;
-        }
-      } catch {}
+      if (!isDocx) {
+        try {
+          const fallbackDocx = await mammoth.extractRawText({ buffer });
+          if (fallbackDocx?.value && fallbackDocx.value.trim().length > 10) {
+            return fallbackDocx.value;
+          }
+        } catch {}
+      }
 
-      // Final fallback to utf-8 text
-      return buffer.toString('utf-8');
+      // Final fallback: plain-text files only. Reading a PDF/DOCX's raw bytes as
+      // text produces gibberish, so for those return nothing and let the
+      // "we found very few skills" tip explain what to do.
+      const isBinary = isPdf || buffer.slice(0, 2).toString() === 'PK';
+      return isBinary ? '' : buffer.toString('utf-8');
     } catch (err) {
       console.error(
         'Failed to download or extract text from resume URL:',
@@ -342,6 +345,17 @@ export class AnalysisService {
       bonusMatchPercent: Math.round(bonusRate * 100),
       tips,
     };
+  }
+}
+
+/** Text of a PDF using pdf-parse v2 (class API; v1's `pdfParse(buffer)` function no longer exists). */
+export async function pdfToText(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  try {
+    const result = await parser.getText();
+    return result?.text ?? '';
+  } finally {
+    await parser.destroy();
   }
 }
 
