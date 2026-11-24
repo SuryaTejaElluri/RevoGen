@@ -1,9 +1,10 @@
 import {
-  Injectable,
-  ForbiddenException,
-  NotFoundException,
   BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
+import { correctLetter, isCorrectChoice, PAPER_TTL_MS, shuffle, signPaper, verifyPaper } from './practice-paper';
 import { PrismaService } from '../prisma/prisma.service';
 import { isValidEmail, normalizeEmail } from '../common/invitations';
 
@@ -195,17 +196,27 @@ export class TestsService {
     });
 
     if (!test) throw new NotFoundException('Test not found');
+    answers = answers && typeof answers === 'object' ? answers : {};
+    proctoringData = proctoringData ?? {};
+
+    // Assigned (non-practice) tests: only invited candidates, and only once.
+    if (!test.isPractice) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+      const invited = user
+        ? await this.prisma.testInvitation.findFirst({
+            where: { testId, email: { equals: normalizeEmail(user.email), mode: 'insensitive' } },
+          })
+        : null;
+      if (!invited) throw new ForbiddenException('You were not invited to this test.');
+      const previous = await this.prisma.attempt.findFirst({ where: { testId, userId } });
+      if (previous) throw new ForbiddenException('You have already submitted this test.');
+    }
+    if (!test.questions.length) throw new BadRequestException('This test has no questions.');
 
     let score = 0;
     for (const question of test.questions) {
       const userAnswer = answers[question.id];
-      const selectedOption =
-        userAnswer === 'A' ? question.optionA
-        : userAnswer === 'B' ? question.optionB
-        : userAnswer === 'C' ? question.optionC
-        : userAnswer === 'D' ? question.optionD
-        : '';
-      if (selectedOption === question.correctAnswer) score++;
+      if (isCorrectChoice(question, userAnswer)) score++;
     }
 
     const totalQuestions = test.questions.length;
@@ -248,7 +259,7 @@ export class TestsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (user) {
       await this.prisma.testInvitation.updateMany({
-        where: { email: user.email, testId },
+        where: { email: { equals: user.email, mode: 'insensitive' }, testId },
         data: { status: 'COMPLETED' },
       });
     }
@@ -430,12 +441,150 @@ export class TestsService {
 
   // ─── Practice tests (public) ──────────────────────────────────────────────────
 
+  // ─── Practice (public list, unlimited attempts) ──────────────────────────────
+
+  /** Practice tests with their subject mix — never the questions or answers. */
   async getPracticeTests() {
-    return this.prisma.test.findMany({
+    const tests = await this.prisma.test.findMany({
       where: { isPractice: true },
-      include: { questions: true },
+      include: { modules: true, _count: { select: { questions: true } } },
       orderBy: { title: 'asc' },
     });
+    return tests.map((t) => {
+      const modules = t.modules.map((m) => ({ module: m.module, questionCount: m.questionCount }));
+      const fromModules = modules.reduce((n, m) => n + m.questionCount, 0);
+      return {
+        id: t.id,
+        title: t.title,
+        duration: t.duration,
+        modules,
+        questionCount: fromModules || t._count.questions,
+      };
+    });
+  }
+
+  /**
+   * Build a fresh random paper for one practice attempt: for each subject in the
+   * test (e.g. Java 20, SQL 10) pick that many questions from the question bank.
+   * Falls back to questions attached directly to the test if it has no subjects.
+   */
+  async startPractice(testId: string, userId: string) {
+    const test = await this.prisma.test.findFirst({
+      where: { id: testId, isPractice: true },
+      include: { modules: true },
+    });
+    if (!test) throw new NotFoundException('Practice test not found');
+
+    type Served = { id: string; module: string; question: string; optionA: string; optionB: string; optionC: string; optionD: string };
+    const served: Served[] = [];
+    const shortfalls: { module: string; requested: number; available: number }[] = [];
+    let source: 'bank' | 'test' = 'bank';
+
+    if (test.modules.length) {
+      for (const m of test.modules) {
+        const pool = await this.prisma.questionBank.findMany({
+          where: { category: { equals: m.module.trim(), mode: 'insensitive' } },
+          select: { id: true },
+        });
+        const pickedIds = shuffle(pool.map((p) => p.id)).slice(0, m.questionCount);
+        if (pickedIds.length < m.questionCount) {
+          shortfalls.push({ module: m.module, requested: m.questionCount, available: pickedIds.length });
+        }
+        if (!pickedIds.length) continue;
+        const picked = await this.prisma.questionBank.findMany({ where: { id: { in: pickedIds } } });
+        picked.forEach((q) => served.push({ ...q, module: m.module }));
+      }
+    } else {
+      source = 'test';
+      const own = await this.prisma.question.findMany({ where: { testId } });
+      shuffle(own).forEach((q) => served.push({ ...q, module: 'General' }));
+    }
+
+    if (!served.length) {
+      throw new BadRequestException('This practice test has no questions yet. Please try another one.');
+    }
+
+    const paper = signPaper({ t: test.id, u: userId, q: served.map((q) => q.id), s: source, i: Date.now() });
+    return {
+      paper,
+      test: { id: test.id, title: test.title, duration: test.duration },
+      shortfalls,
+      questions: served.map((q) => ({
+        id: q.id,
+        module: q.module,
+        question: q.question,
+        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+      })),
+    };
+  }
+
+  /** Grade a practice paper, save the attempt, and return a full review. */
+  async submitPractice(testId: string, userId: string, paperToken: string, answers: Record<string, string> = {}) {
+    const paper = verifyPaper(paperToken);
+    if (!paper || paper.t !== testId || paper.u !== userId) {
+      throw new BadRequestException('This practice session is no longer valid. Please start the test again.');
+    }
+    if (Date.now() - paper.i > PAPER_TTL_MS) {
+      throw new BadRequestException('This practice session has expired. Please start the test again.');
+    }
+    const test = await this.prisma.test.findFirst({ where: { id: testId, isPractice: true }, include: { modules: true } });
+    if (!test) throw new NotFoundException('Practice test not found');
+
+    const rows: { id: string; question: string; optionA: string; optionB: string; optionC: string; optionD: string; correctAnswer: string; category?: string }[] =
+      paper.s === 'bank'
+        ? await this.prisma.questionBank.findMany({ where: { id: { in: paper.q } } })
+        : await this.prisma.question.findMany({ where: { id: { in: paper.q }, testId } });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+
+    // Map bank categories back to the test's subject names (case-insensitive).
+    const subjectFor = (category?: string) =>
+      test.modules.find((m) => m.module.trim().toLowerCase() === (category ?? '').trim().toLowerCase())?.module ?? category ?? 'General';
+
+    const answerMap = answers && typeof answers === 'object' ? answers : {};
+    const review = paper.q
+      .map((id) => byId.get(id))
+      .filter((q): q is NonNullable<typeof q> => !!q)
+      .map((q) => {
+        const selected = answerMap[q.id] ? String(answerMap[q.id]).toUpperCase() : null;
+        return {
+          id: q.id,
+          module: paper.s === 'bank' ? subjectFor(q.category) : 'General',
+          question: q.question,
+          options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+          selected,
+          correct: correctLetter(q),
+          isCorrect: isCorrectChoice(q, selected ?? undefined),
+        };
+      });
+
+    const totalQuestions = review.length;
+    if (!totalQuestions) throw new BadRequestException('None of the questions in this session exist any more. Please start again.');
+    const score = review.filter((r) => r.isCorrect).length;
+    const percentage = Number(((score / totalQuestions) * 100).toFixed(2));
+
+    const attempt = await this.prisma.attempt.create({
+      data: { score, totalQuestions, percentage, userId, testId },
+    });
+
+    const modules = new Map<string, { module: string; correct: number; total: number }>();
+    review.forEach((r) => {
+      const m = modules.get(r.module) ?? { module: r.module, correct: 0, total: 0 };
+      m.total++;
+      if (r.isCorrect) m.correct++;
+      modules.set(r.module, m);
+    });
+
+    return {
+      attemptId: attempt.id,
+      testId,
+      title: test.title,
+      score,
+      totalQuestions,
+      percentage,
+      answered: review.filter((r) => r.selected).length,
+      modules: [...modules.values()],
+      review,
+    };
   }
 
   // ─── Candidate report (verify admin owns the test) ───────────────────────────

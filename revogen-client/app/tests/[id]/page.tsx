@@ -28,6 +28,11 @@ export default function TestInstructionsPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/tests/${params.id}`);
       const data = await response.json();
+      // Practice tests run in the practice runner (fresh questions, no proctoring).
+      if (data?.isPractice) {
+        router.replace(`/practice/${params.id}`);
+        return;
+      }
       setTest(data);
     } catch (error) {
       console.error(error);

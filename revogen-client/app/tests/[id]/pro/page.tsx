@@ -1050,6 +1050,11 @@ export default function TestPage() {
       try {
         const res  = await fetch(`${API_BASE_URL}/tests/${id}`);
         const data = await res.json();
+        // Practice tests have their own runner (fresh questions each time).
+        if (data?.isPractice) {
+          router.replace(`/practice/${id}`);
+          return;
+        }
         setTest(data);
         setTimeLeft(data.duration * 60);
 

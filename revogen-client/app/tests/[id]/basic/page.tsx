@@ -689,6 +689,12 @@ export default function TestPage() {
 
       const data = await response.json();
 
+      // Practice tests have their own runner (fresh questions each time).
+      if (data?.isPractice) {
+        router.replace(`/practice/${id}`);
+        return;
+      }
+
       setTest(data);
       setTimeLeft(data.duration * 60);
 

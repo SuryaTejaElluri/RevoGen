@@ -5,14 +5,17 @@ import CandidateFooter from '@/components/candidate/Footer';
 import Link from 'next/link';
 import Navbar, { Icon } from '@/components/Navbar';
 import { API_BASE_URL } from '@/lib/api';
+import { getToken } from '@/lib/auth';
 
 interface PracticeTest {
   id: string;
   title: string;
   duration: number;
-  questions?: unknown[];
-  category?: string;
+  questionCount: number;
+  modules: { module: string; questionCount: number }[];
 }
+
+interface MyStats { attempts: number; best: number; last: number }
 
 type SortKey = 'default' | 'duration' | 'questions';
 
@@ -30,23 +33,54 @@ export default function PracticePage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('default');
+  const [mine, setMine] = useState<Record<string, MyStats>>({});
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/tests/practice`)
-      .then(res => res.json())
-      .then(data => setTests(Array.isArray(data) ? data : []))
-      .catch(e => { console.error(e); setError('Could not load practice tests. Refresh the page to try again.'); })
-      .finally(() => setLoading(false));
+    const load = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/tests/practice`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setTests(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+        setError('Could not load practice tests. Refresh the page to try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    // Your attempts and best score per test (signed-in only; optional).
+    const loadMine = async () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/tests/my-attempts`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data: { testId: string; percentage?: number | string | null; createdAt?: string; test?: { isPractice?: boolean } }[] = await res.json();
+        const map: Record<string, MyStats> = {};
+        (Array.isArray(data) ? data : [])
+          .filter(a => a.test?.isPractice && a.percentage != null)
+          .sort((a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime())
+          .forEach(a => {
+            const pct = Number(a.percentage);
+            const m = map[a.testId] ?? { attempts: 0, best: 0, last: 0 };
+            map[a.testId] = { attempts: m.attempts + 1, best: Math.max(m.best, pct), last: pct };
+          });
+        setMine(map);
+      } catch { /* stats are optional */ }
+    };
+    load();
+    loadMine();
   }, []);
 
   const filtered = useMemo(() => {
     let list = tests.filter(t => t.title?.toLowerCase().includes(search.toLowerCase()));
     if (sort === 'duration') list = [...list].sort((a, b) => a.duration - b.duration);
-    if (sort === 'questions') list = [...list].sort((a, b) => (b.questions?.length ?? 0) - (a.questions?.length ?? 0));
+    if (sort === 'questions') list = [...list].sort((a, b) => b.questionCount - a.questionCount);
     return list;
   }, [tests, search, sort]);
 
-  const totalQuestions = tests.reduce((s, t) => s + (t.questions?.length ?? 0), 0);
+  const totalQuestions = tests.reduce((s, t) => s + (t.questionCount ?? 0), 0);
   const avgDuration = tests.length ? Math.round(tests.reduce((s, t) => s + (t.duration ?? 0), 0) / tests.length) : 0;
   const quickest = [...tests].sort((a, b) => a.duration - b.duration)[0];
 
@@ -57,7 +91,7 @@ export default function PracticePage() {
         <div className="head fade">
           <div>
             <h1>Practice</h1>
-            <p>Real questions, no stakes. Practise as often as you like; it doesn’t affect your assigned tests.</p>
+            <p>Real questions, no stakes. Every attempt draws a fresh set of questions, so practise as often as you like; it doesn’t affect your assigned tests.</p>
           </div>
         </div>
 
@@ -68,9 +102,9 @@ export default function PracticePage() {
               <>
                 <div>
                   <h2 className="pr-hero-title">{quickest.title}</h2>
-                  <p className="sub">The shortest test available: {quickest.duration} min, {quickest.questions?.length ?? 0} questions.</p>
+                  <p className="sub">The shortest test available: {quickest.duration} min, {quickest.questionCount} questions{quickest.modules.length > 1 ? ` across ${quickest.modules.length} subjects` : ''}.</p>
                 </div>
-                <Link href={`/tests/${quickest.id}`} className="btn lime" style={{ alignSelf: 'flex-start' }}>
+                <Link href={`/practice/${quickest.id}`} className="btn lime" style={{ alignSelf: 'flex-start' }}>
                   Start now<Icon name="arrow" size={16} />
                 </Link>
               </>
@@ -128,18 +162,31 @@ export default function PracticePage() {
               {filtered.map((test, i) => {
                 const diff = getDifficulty(test.duration);
                 const tone = TILE_TONES[i % TILE_TONES.length];
+                const my = mine[test.id];
                 return (
-                  <Link key={test.id} href={`/tests/${test.id}`} className="tile pr-card">
+                  <Link key={test.id} href={`/practice/${test.id}`} className="tile pr-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <span className={`ico ${tone}`}><Icon name="list" /></span>
                       <span className={`chip ${diff.tone}`}>{diff.label}</span>
                     </div>
                     <h3 className="pr-title">{test.title}</h3>
-                    <div className="chips" style={{ margin: '10px 0 16px' }}>
+                    <div className="chips" style={{ margin: '10px 0 0' }}>
                       <span className="chip"><Icon name="clock" size={12} />{test.duration} min</span>
-                      <span className="chip"><Icon name="target" size={12} />{test.questions?.length ?? 0} questions</span>
+                      <span className="chip"><Icon name="target" size={12} />{test.questionCount} questions</span>
                     </div>
-                    <span className="btn dark block">Start practice<Icon name="arrow" size={16} /></span>
+                    {test.modules.length > 0 && (
+                      <p className="pr-mix">{test.modules.map(m => `${m.questionCount} ${m.module}`).join(' · ')}</p>
+                    )}
+                    <div className="pr-mine">
+                      {my ? (
+                        <>
+                          <span><b>{my.attempts}</b> attempt{my.attempts === 1 ? '' : 's'}</span>
+                          <span>Best <b>{Math.round(my.best)}%</b></span>
+                          <span>Last <b>{Math.round(my.last)}%</b></span>
+                        </>
+                      ) : <span>Not attempted yet</span>}
+                    </div>
+                    <span className="btn dark block">{my ? 'Practise again' : 'Start practice'}<Icon name="arrow" size={16} /></span>
                   </Link>
                 );
               })}
@@ -157,6 +204,9 @@ export default function PracticePage() {
         .bx .pr-card{background:var(--bg);display:flex;flex-direction:column;transition:transform .15s,box-shadow .15s}
         .bx .pr-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px var(--shadow)}
         .bx .pr-card .btn{margin-top:auto}
+        .bx .pr-mix{font-size:13px;color:var(--muted);margin:10px 0 0;line-height:1.5}
+        .bx .pr-mine{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:12px 0 16px;padding-top:12px;border-top:1px solid var(--line)}
+        .bx .pr-mine b{color:var(--ink)}
         .bx .pr-title{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:14px 0 0}
         @media (max-width:1000px){.bx .pr-top{grid-template-columns:repeat(3,minmax(0,1fr))}.bx .pr-hero{grid-column:1/-1}}
         @media (max-width:560px){.bx .pr-top{grid-template-columns:1fr 1fr}.bx .tile-h .input{width:100% !important}}

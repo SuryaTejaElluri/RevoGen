@@ -13,6 +13,7 @@ interface Attempt {
   totalQuestions?: number;
   percentage?: number | string | null;
   createdAt?: string;
+  testId?: string;
   test?: { title?: string; isPractice?: boolean };
 }
 
@@ -49,6 +50,7 @@ export default function MyResultsPage() {
         const response = await fetch(`${API_BASE_URL}/tests/my-attempts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         setAttempts(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -182,6 +184,9 @@ export default function MyResultsPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span className="t2 rs-frac">{attempt.score ?? '–'}/{attempt.totalQuestions ?? '–'} correct</span>
                         <MiniRing pct={pct} />
+                        {attempt.testId && (
+                          <Link href={`/practice/${attempt.testId}`} className="btn sm rs-retake" aria-label={`Retake ${attempt.test?.title ?? 'practice test'}`}>Retake</Link>
+                        )}
                       </div>
                     ) : (
                       <span className="chip green"><Icon name="check" size={12} />Submitted</span>
@@ -198,7 +203,7 @@ export default function MyResultsPage() {
       <style>{`
         .bx .rs-top{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.5fr)}
         @media (max-width:1000px){.bx .rs-top{grid-template-columns:repeat(3,minmax(0,1fr))}.bx .rs-trend{grid-column:1/-1}}
-        @media (max-width:560px){.bx .rs-top{grid-template-columns:1fr 1fr}.bx .rs-frac{display:none}.bx .tile-h .input{width:100% !important}}
+        @media (max-width:560px){.bx .rs-top{grid-template-columns:1fr 1fr}.bx .rs-frac{display:none}.bx .rs-retake{display:none}.bx .tile-h .input{width:100% !important}}
       `}</style>
     </div>
   );

@@ -69,7 +69,7 @@ Revogen puts the whole loop in one app:
 
 - **Bento dashboard** with the next test, ATS score, results and practice at a glance — light and dark mode.
 - **Resume ATS check** against **20 industry roles** (or a pasted job description): must-have skills count 70%, nice-to-haves 30%, with specific tips on what to add.
-- **Practice tests** and a results history with a score trend.
+- **Unlimited MCQ practice** — each test is a subject mix (e.g. 20 Java + 10 SQL) drawn fresh from the question bank on every attempt, with a per-subject score and a full answer review. Results history shows a score trend.
 - **A focused test workspace** — pre-start checklist, question tabs, problem/editor split, run against examples, submit for a score, and nothing lost: unsubmitted code is submitted for you when you finish.
 
 ---

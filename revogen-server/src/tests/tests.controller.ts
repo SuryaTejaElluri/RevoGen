@@ -146,6 +146,30 @@ export class TestsController {
     );
   }
 
+  // ─── Public: Practice Tests (must stay above ':id') ─────────────────────────────
+  @Get('practice')
+  getPracticeTests() {
+    return this.testsService.getPracticeTests();
+  }
+
+  // ─── Candidate: start a practice attempt (fresh random paper) ─────────────────
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/practice/start')
+  startPractice(@Param('id') id: string, @Request() req) {
+    return this.testsService.startPractice(id, req.user.userId);
+  }
+
+  // ─── Candidate: submit a practice attempt (graded with review) ────────────────
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/practice/submit')
+  submitPractice(
+    @Param('id') id: string,
+    @Body() body: { paper: string; answers: Record<string, string> },
+    @Request() req,
+  ) {
+    return this.testsService.submitPractice(id, req.user.userId, body?.paper, body?.answers);
+  }
+
   // ─── Public: Get Single Test (candidate takes it) ────────────────────────────
   @Get(':id')
   findById(@Param('id') id: string) {
@@ -153,9 +177,4 @@ export class TestsController {
     return this.testsService.findById(id);
   }
 
-  // ─── Public: Practice Tests ───────────────────────────────────────────────────
-  @Get('practice')
-  getPracticeTests() {
-    return this.testsService.getPracticeTests();
-  }
 }
