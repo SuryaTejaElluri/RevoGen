@@ -18,6 +18,7 @@ import { CodingAttemptsModule } from './coding-attempts/coding-attempts.module';
 import { CodingSubmissionsModule } from './coding-submissions/coding-submissions.module';
 import { CreditsModule } from './credits/credits.module';
 import { MailModule } from './mail/mail.module';
+import { SuperAdminModule } from './super-admin/super-admin.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,7 +40,8 @@ import { MailModule } from './mail/mail.module';
     CodingSubmissionsModule,
 
     CreditsModule,
-    MailModule
+    MailModule,
+    SuperAdminModule,
   ],
 })
 export class AppModule {}

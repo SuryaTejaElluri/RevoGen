@@ -6,10 +6,13 @@ import {
   Param,
   Request,
   UseGuards,
+  UsePipes,
   Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../auth/admin.guard';
+import { SuperAdminGuard } from '../auth/super-admin.guard';
+import { strictBody } from '../common/roles';
 import { CreditsService } from './credits.service';
 import { AddCreditsDto } from './dto/add-credits.dto';
 import { DeductCreditsDto } from './dto/deduct-credits.dto';
@@ -20,6 +23,7 @@ import { AdminDeductCreditsDto } from './dto/admin-deduct-credits.dto';
 
 @Controller('credits')
 @UseGuards(AuthGuard('jwt'), AdminGuard)
+@UsePipes(strictBody())
 export class CreditsController {
   constructor(private readonly creditsService: CreditsService) {}
 
@@ -76,6 +80,7 @@ export class CreditsController {
   // ── POST /credits/add ─────────────────────────────────────────────────────────
   // Internal: add credits to own wallet
   @Post('add')
+  @UseGuards(SuperAdminGuard)
   addCredits(@Request() req, @Body() dto: AddCreditsDto) {
     return this.creditsService.addCredits(req.user.userId, dto);
   }
@@ -90,6 +95,7 @@ export class CreditsController {
   // ── POST /credits/admin/add ───────────────────────────────────────────────────
   // Super-admin: add credits to any user's wallet
   @Post('admin/add')
+  @UseGuards(SuperAdminGuard)
   adminAddCredits(@Body() dto: AdminAddCreditsDto) {
     return this.creditsService.adminAddCredits(dto);
   }
@@ -97,6 +103,7 @@ export class CreditsController {
   // ── POST /credits/admin/deduct ────────────────────────────────────────────────
   // Super-admin: deduct credits from any user's wallet (never goes negative)
   @Post('admin/deduct')
+  @UseGuards(SuperAdminGuard)
   adminDeductCredits(@Body() dto: AdminDeductCreditsDto) {
     return this.creditsService.adminDeductCredits(dto);
   }

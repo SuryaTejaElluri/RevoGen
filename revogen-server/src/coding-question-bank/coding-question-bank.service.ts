@@ -12,7 +12,6 @@ export class CodingQuestionBankService {
   async create(
     dto: CreateCodingQuestionDto,
   ) {
-     console.log("DTttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttO:", dto);
     const question =
   await this.prisma.codingQuestionBank.create({
     data: {

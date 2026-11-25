@@ -32,7 +32,9 @@ export default function CreateCodingAssessmentPage() {
 
   const loadQuestions = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/coding-question-bank`);
+      const response = await fetch(`${API_BASE_URL}/coding-question-bank`, {
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+      });
       if (response.ok) { const data = await response.json(); setQuestions(data); }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }

@@ -1,33 +1,14 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  ForbiddenException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { ROLES } from '../common/roles';
 
+/** Recruiters and super admins. */
 @Injectable()
-export class AdminGuard
-  implements CanActivate
-{
-  canActivate(
-    context: ExecutionContext,
-  ): boolean {
-    const request =
-      context
-        .switchToHttp()
-        .getRequest();
-
-    if (
-      request.user.role !==
-        'ADMIN' &&
-      request.user.role !==
-        'SUPER_ADMIN'
-    ) {
-      throw new ForbiddenException(
-        'Admins only',
-      );
+export class AdminGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const role = context.switchToHttp().getRequest().user?.role;
+    if (role !== ROLES.RECRUITER && role !== ROLES.SUPER_ADMIN) {
+      throw new ForbiddenException('Admins only');
     }
-
     return true;
   }
 }

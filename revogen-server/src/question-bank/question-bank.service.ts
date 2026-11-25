@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { assertNotDuplicate, canonicalCategory, requireMcq } from './mcq-input';
 
 @Injectable()
 export class QuestionBankService {
@@ -7,10 +8,12 @@ export class QuestionBankService {
     private prisma: PrismaService,
   ) {}
 
-  async create(body: any) {
-    return this.prisma.questionBank.create({
-      data: body,
-    });
+  /** Validated: only the MCQ fields are stored, never arbitrary body keys. */
+  async create(body: Record<string, unknown>) {
+    const data = requireMcq(body);
+    data.category = await canonicalCategory(this.prisma, data.category);
+    await assertNotDuplicate(this.prisma, data);
+    return this.prisma.questionBank.create({ data });
   }
 
   async findAll(category?: string) {
@@ -35,20 +38,19 @@ export class QuestionBankService {
     });
   }
 
-  async update(
-    id: string,
-    body: any,
-  ) {
-    return this.prisma.questionBank.update({
-      where: {
-        id,
-      },
-
-      data: body,
-    });
+  async update(id: string, body: Record<string, unknown>) {
+    const existing = await this.prisma.questionBank.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Question not found');
+    // Merge so a partial update is still checked as a whole question.
+    const data = requireMcq({ ...existing, ...(body ?? {}) });
+    data.category = await canonicalCategory(this.prisma, data.category);
+    await assertNotDuplicate(this.prisma, data, id);
+    return this.prisma.questionBank.update({ where: { id }, data });
   }
 
   async remove(id: string) {
+    const existing = await this.prisma.questionBank.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) throw new NotFoundException('Question not found');
     await this.prisma.questionBank.delete({
       where: {
         id,

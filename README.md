@@ -65,6 +65,13 @@ Revogen puts the whole loop in one app:
 - **Results and reports** — per-candidate score, code per question, risk score and integrity timeline.
 - **Revo Credits** — pay per assessment; re-inviting the same candidate never charges twice.
 
+### For super admins
+
+- **Console at `/pro-admin`** — overview of users, signups, attempts and credits, plus **practice coverage** (bank questions per subject vs. what each practice test needs).
+- **Users** — search and filter; change anyone between Candidate, Recruiter and Super admin; suspend and reactivate; verify emails; adjust recruiter credits with a reason; safe delete (never for someone who owns tests).
+- **MCQ bank** — create and edit with full validation (four distinct options, duplicate check), and bulk CSV import with a row-by-row report.
+- **Coding bank** — full editor with sample and hidden test cases, check mode, starter code per language, a candidate-view preview, and a **reference solution runner** that checks test cases through Judge0 and can fill in expected outputs.
+
 ### For candidates
 
 - **Bento dashboard** with the next test, ATS score, results and practice at a glance — light and dark mode.
@@ -135,11 +142,12 @@ RevoGen/
 │   │   ├── candidate/tests/[attemptId]/{basic,pro}/                    # Coding exam
 │   │   ├── tests/                  # MCQ exam + thank-you page
 │   │   ├── admin/                  # Recruiter area
-│   │   └── pro-admin/              # Super-admin
+│   │   └── pro-admin/              # Super admin console
 │   ├── components/
 │   │   ├── site/                   # Marketing shell (nav, footer, theme)
 │   │   ├── auth/                   # Login / register shell
 │   │   ├── candidate/              # Bento theme + footer
+│   │   ├── super-admin/            # Console shell, editors, user actions
 │   │   └── coding-test/            # Shared exam workspace + proctoring
 │   └── lib/                        # API base URL, session helpers
 │

@@ -13,6 +13,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import * as crypto from 'crypto';
 import { UnauthorizedException } from '@nestjs/common';
 import { MailService } from '../mail/mail.service';
+import { ROLES, SELF_SIGNUP_ROLES } from '../common/roles';
+import { provisionRecruiterWallet } from '../common/wallet';
 import {
   linkPendingCodingInvitations,
   normalizeEmail,
@@ -54,14 +56,15 @@ const verificationTokenExpires = new Date(
   email: dto.email,
   password: hashedPassword,
   phone: dto.phone,
-  role: dto.role ?? 'USER',
+  // Only Candidate or Recruiter can be chosen at sign-up — never super admin.
+  role: SELF_SIGNUP_ROLES.includes(dto.role ?? '') ? dto.role : ROLES.CANDIDATE,
 
   verificationToken,
   verificationTokenExpires,
 });
 
 this.logger.log(
-  `Registered user: ${dto.email} | role: ${dto.role ?? 'USER'}`,
+  `Registered user: ${dto.email} | role: ${user.role}`,
 );
 
 const { password, ...safeUser } = user;
@@ -106,6 +109,10 @@ this.mailService
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.role === ROLES.SUSPENDED) {
+      throw new UnauthorizedException('This account has been suspended. Contact support.');
+    }
+
       if (!user.isVerified) {
   throw new UnauthorizedException(
     'Please verify your email before logging in.',
@@ -148,33 +155,8 @@ this.mailService
     email: string,
   ): Promise<void> {
     try {
-      const existing = await this.prisma.adminCredits.findUnique({
-        where: { userId },
-      });
-
-      if (existing) return; // wallet already provisioned — nothing to do
-
-      await this.prisma.$transaction(async (tx) => {
-        await tx.adminCredits.create({
-          data: { userId, balance: 20 },
-        });
-
-        await tx.creditTransaction.create({
-          data: {
-            userId,
-            type: 'BONUS',
-            credits: 20,
-            balanceAfter: 20,
-            description: 'Welcome Bonus',
-            referenceId: null,
-            metadata: {
-              reason: 'First Login',
-              source: 'System',
-            },
-          },
-        });
-      });
-
+      const created = await provisionRecruiterWallet(this.prisma, userId);
+      if (!created) return; // wallet already provisioned — nothing to do
       this.logger.log(
         `Created Revo Credits wallet for admin: ${email} — Granted Welcome Bonus: 20 Credits`,
       );

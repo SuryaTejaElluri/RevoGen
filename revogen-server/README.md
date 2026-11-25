@@ -34,4 +34,5 @@ Unit tests use in-memory fakes of Prisma and Judge0, so they never touch a datab
 | `coding-tests`, `coding-attempts`, `coding-submissions`, `judge0` | Coding tests, invitations, attempts, sandboxed execution |
 | `tests`, `question-bank` | MCQ tests |
 | `credits`, `dashboard`, `mail`, `cloudinary` | Revo Credits, dashboard stats, email, file storage |
-| `common` | Shared helpers (invitation linking, attempt guards) |
+| `super-admin` | Super admin API: users, roles, credits, MCQ and coding banks, overview |
+| `common` | Shared helpers (roles, validation, wallets, invitation linking, attempt guards) |
