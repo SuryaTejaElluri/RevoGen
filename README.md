@@ -180,6 +180,10 @@ CLIENT_URL=http://localhost:3001
 
 RAPIDAPI_KEY=your-judge0-rapidapi-key
 RAPIDAPI_HOST=judge0-ce.p.rapidapi.com
+# optional per-run limits (defaults: 5 s CPU, 10 s wall, 256 MB)
+# JUDGE0_CPU_TIME_LIMIT=5
+# JUDGE0_WALL_TIME_LIMIT=10
+# JUDGE0_MEMORY_LIMIT_KB=256000
 
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...

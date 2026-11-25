@@ -203,10 +203,10 @@ function ValidatorCard() {
       </div>
       <table className="vtable">
         <tbody>
-          <tr><td>EXACT</td><td>Output must match character for character</td></tr>
-          <tr><td>IGNORE_ORDER</td><td>Same lines, any order</td></tr>
+          <tr><td>EXACT</td><td>Same output, line for line (line endings and trailing spaces ignored)</td></tr>
+          <tr><td>IGNORE_ORDER</td><td>Same lines, or same values on one line, in any order</td></tr>
           <tr><td>SET_COMPARE</td><td>Same unique values, duplicates ignored</td></tr>
-          <tr><td>FLOAT_COMPARE</td><td>Numbers within a small tolerance</td></tr>
+          <tr><td>FLOAT_COMPARE</td><td>Numbers within a set tolerance, words exact</td></tr>
         </tbody>
       </table>
     </div>

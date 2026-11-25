@@ -155,19 +155,16 @@ function setup() {
   };
   // Fake Judge0: "add the two numbers" if code says ok, compile error if code says broken.
   const judge0: any = {
-    createSubmission: async (code: string, _l: number, stdin: string) => ({
-      token: JSON.stringify({ code, stdin }),
-    }),
-    getSubmissionResult: async (token: string) => {
-      const { code, stdin } = JSON.parse(token);
-      if (code.includes('broken'))
-        return {
-          status: { id: 6, description: 'Compilation Error' },
-          compile_output: 'SyntaxError: oops',
-        };
-      const out = stdin === '1 2' ? '3' : 'wrong';
-      return { status: { id: 3, description: 'Accepted' }, stdout: out };
-    },
+    runBatch: async (code: string, _l: number, inputs: string[]) =>
+      inputs.map((stdin) => {
+        if (code.includes('broken'))
+          return {
+            status: { id: 6, description: 'Compilation Error' },
+            compile_output: 'SyntaxError: oops',
+          };
+        const out = stdin === '1 2' ? '3' : 'wrong';
+        return { status: { id: 3, description: 'Accepted' }, stdout: out };
+      }),
   };
   return {
     db,
